@@ -28,12 +28,20 @@ export interface SessionSummary {
   parentSession?: string
   lastSeq: number
   indexedAt: number
+  /** Timestamp of the earliest indexed event; the chat-duration lower bound. */
+  firstAt?: number
+  /** Timestamp of the latest indexed event; the chat-duration upper bound. */
+  lastAt?: number
   activities: ActivityRecord[]
+  /** Non-skill tool-call counts by tool name, for the plugin ranking. */
+  tools: Record<string, number>
+  /** Skill-invocation counts by skill name (from `skill` tool calls). */
+  skills: Record<string, number>
 }
 
 export interface IndexCache {
-  /** Schema 4 rebuilds call metadata using persistent request-header snapshots. */
-  schema: 4
+  /** Schema 5 adds per-session tool/skill counters and activity spans. */
+  schema: 5
   sessions: SessionSummary[]
 }
 
@@ -53,7 +61,7 @@ export interface CallsQuery extends StatsQuery {
   provider: string | undefined
   /** Keep only calls whose billed input tokens are at least this value. */
   minInputTokens: number | undefined
-  /** Keep only calls whose output tokens are at least this value. */
+  /** Keep only calls whose billed output tokens are at least this value. */
   minOutputTokens: number | undefined
   /** Maximum number of newest matching calls retained by the detail view. */
   maxRecords: number
@@ -104,6 +112,27 @@ export interface DayStats extends TokenBreakdown {
   models: Record<string, number>
 }
 
+/** Reasoning-effort distribution over all indexed assistant calls. */
+export interface EffortUsage {
+  id: string
+  calls: number
+  percent: number
+}
+
+/** One plugin/skill row of the "most used plugins" ranking. */
+export interface PluginUsage {
+  name: string
+  runs: number
+}
+
+/** Optional inputs for {@link aggregateStats}; all fields are optional. */
+export interface AggregateOptions {
+  /** Case-insensitive pattern matching "fast" model ids (e.g. flash/turbo variants). */
+  fastModelPattern?: RegExp
+  /** Tool names excluded from the plugin ranking (built-in tools, case-insensitive). */
+  pluginToolExclude?: ReadonlySet<string>
+}
+
 export interface StatsSnapshot {
   generatedAt: number
   range: { from: string; to: string; timeZone: string }
@@ -116,11 +145,38 @@ export interface StatsSnapshot {
   } & TokenBreakdown
   mostUsedModel: ModelStats | null
   allTime: {
-    totals: StatsSnapshot['totals']
+    totals: {
+      tokens: number
+      sessions: number
+      messages: number
+      activeDays: number
+      /** Current streak in active days, anchored at today (or yesterday when today is still empty). */
+      currentStreak: number
+      /** Highest single-day token total over all indexed history. */
+      peakDayTokens: number
+      /** Longest wall-clock span between a session's first and last event, in ms. */
+      longestSessionMs: number
+      /** Longest run of consecutive active days over all indexed history. */
+      longestStreak: number
+      /** Sessions with at least one indexed activity. */
+      chats: number
+      /** All assistant model calls (denominator for fast-mode and effort percentages). */
+      totalCalls: number
+      /** Assistant calls whose model id matches the fast-model pattern. */
+      fastCalls: number
+      /** Total `skill` tool invocations. */
+      skillInvocations: number
+      /** Distinct skill names ever invoked. */
+      uniqueSkills: number
+      efforts: EffortUsage[]
+    } & TokenBreakdown
+    models: ModelStats[]
     mostUsedModel: ModelStats | null
   }
   days: DayStats[]
   models: ModelStats[]
   workspaces: { path: string; sessions: number }[]
+  /** Top plugin/skill rankings (skills plus non-built-in tool calls), newest-usage first. */
+  topPlugins: PluginUsage[]
   index: { sessions: number; lastUpdatedAt: number | null }
 }

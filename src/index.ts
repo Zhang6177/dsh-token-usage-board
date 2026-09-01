@@ -8,16 +8,30 @@ import type {} from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import z from '@deepseek-ai/schemastery'
 import { aggregateStats, appendActivity, collectCalls, exportCsv, newCollectState, summarizeSession, type CollectState } from './core.js'
-import type { CallRecord, CallsFilter, CallsPage, IndexCache, SessionSummary, StatsQuery, TaskScope } from './types.js'
+import type { AggregateOptions, CallRecord, CallsFilter, CallsPage, IndexCache, SessionSummary, StatsQuery, TaskScope } from './types.js'
 
 export const name = 'usage-stats'
 export const inject = ['sessionQuery', 'webServer']
+
+/** Core DSH tool names that are never "plugins" for the usage ranking. */
+export const DEFAULT_PLUGIN_TOOL_EXCLUDE: readonly string[] = [
+  'ask_user_question', 'bash', 'create_goal', 'edit', 'exit_plan_mode', 'get_goal',
+  'glob', 'grep', 'interrupt_agent', 'job_kill', 'job_list', 'job_output',
+  'list_agents', 'read', 'read_image', 'ralph', 'run_code', 'send_message', 'skill',
+  'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'web_search', 'workflow', 'write',
+]
+
+const DEFAULT_FAST_MODEL_PATTERN = 'flash|turbo|lite|nano|haiku|fast|mini'
 
 export interface Config {
   indexConcurrency?: number
   cacheWriteDelayMs?: number
   cachePath?: string
   apiPath?: string
+  /** Case-insensitive ids of fast models, e.g. `flash|turbo`. */
+  fastModelPattern?: RegExp
+  /** Tool names excluded from the "most used plugins" ranking. */
+  pluginToolExclude?: string[]
 }
 
 export const Config: z<Config> = z.object({
@@ -25,6 +39,8 @@ export const Config: z<Config> = z.object({
   cacheWriteDelayMs: z.natural().min(250).max(30_000).default(1000).description('Debounce delay for local index writes.'),
   cachePath: z.string().description('Optional index path; defaults below DSH_HOME.'),
   apiPath: z.string().default('/usage-stats/v1').description('Same-origin read-only API prefix.'),
+  fastModelPattern: z.regExp('i').default(new RegExp(DEFAULT_FAST_MODEL_PATTERN, 'i')).description('Case-insensitive regex matching fast model ids (e.g. flash variants).'),
+  pluginToolExclude: z.array(z.string()).default([...DEFAULT_PLUGIN_TOOL_EXCLUDE]).description('Tool names excluded from the plugin ranking (built-in tools by default).'),
 })
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -87,8 +103,9 @@ function parsePagination(req: IncomingMessage): { page: number; pageSize: number
 function isCache(value: unknown): value is IndexCache {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Partial<IndexCache>
-  // Schema 4 rebuilds effort using the latest persistent request-header snapshot.
-  return record.schema === 4 && Array.isArray(record.sessions)
+  // Schema 5 adds per-session tool/skill counters and activity spans; older
+  // caches are rebuilt by replaying the durable session logs.
+  return record.schema === 5 && Array.isArray(record.sessions)
 }
 
 class UsageIndex {
@@ -102,8 +119,14 @@ class UsageIndex {
   private disposed = false
   private loading: Promise<void> | undefined
 
-  constructor(private readonly ctx: Context, private readonly config: Required<Pick<Config, 'indexConcurrency' | 'cacheWriteDelayMs' | 'apiPath'>> & Config) {
+  private readonly aggregateOptions: AggregateOptions
+
+  constructor(private readonly ctx: Context, private readonly config: Required<Pick<Config, 'indexConcurrency' | 'cacheWriteDelayMs' | 'apiPath' | 'fastModelPattern' | 'pluginToolExclude'>> & Config) {
     this.cachePath = config.cachePath ?? dshHomePath('usage-stats', 'index-v1.json')
+    this.aggregateOptions = {
+      fastModelPattern: config.fastModelPattern,
+      pluginToolExclude: new Set(config.pluginToolExclude.map(name => name.toLowerCase())),
+    }
   }
 
   start(): void {
@@ -195,7 +218,7 @@ class UsageIndex {
   }
 
   private async persist(): Promise<void> {
-    const data: IndexCache = { schema: 4, sessions: [...this.sessions.values()] }
+    const data: IndexCache = { schema: 5, sessions: [...this.sessions.values()] }
     const temporary = `${this.cachePath}.${process.pid}.tmp`
     await mkdir(dirname(this.cachePath), { recursive: true })
     await writeFile(temporary, JSON.stringify(data), { encoding: 'utf8', mode: 0o600 })
@@ -239,7 +262,7 @@ class UsageIndex {
         return
       }
       const query = parseQuery(req)
-      const snapshot = aggregateStats(this.sessions.values(), query)
+      const snapshot = aggregateStats(this.sessions.values(), query, this.aggregateOptions)
       if (path === `${this.config.apiPath}/export.csv`) {
         const csv = exportCsv(snapshot)
         res.writeHead(200, {
@@ -271,15 +294,27 @@ class UsageIndex {
   }
 }
 
+function compileFastPattern(value: RegExp | string | undefined): RegExp {
+  if (value instanceof RegExp) return value
+  const source = typeof value === 'string' && value.length > 0 ? value : DEFAULT_FAST_MODEL_PATTERN
+  try {
+    return new RegExp(source, 'i')
+  } catch {
+    return new RegExp(DEFAULT_FAST_MODEL_PATTERN, 'i')
+  }
+}
+
 export function apply(ctx: Context, config: Config = {}): void {
   const normalized = {
     ...config,
     indexConcurrency: config.indexConcurrency ?? 2,
     cacheWriteDelayMs: config.cacheWriteDelayMs ?? 1000,
     apiPath: (config.apiPath ?? '/usage-stats/v1').replace(/\/$/, ''),
+    fastModelPattern: compileFastPattern(config.fastModelPattern),
+    pluginToolExclude: config.pluginToolExclude ?? [...DEFAULT_PLUGIN_TOOL_EXCLUDE],
   }
   new UsageIndex(ctx, normalized).start()
 }
 
 export type * from './types.js'
-export { aggregateCalls, activityFromEvent, aggregateStats, appendActivity, collectCalls, exportCsv, newCollectState, summarizeSession } from './core.js'
+export { aggregateCalls, activityFromEvent, aggregateStats, appendActivity, collectCalls, exportCsv, newCollectState, parseSkillName, recordSessionMeta, summarizeSession } from './core.js'

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
-import { activityFromEvent, aggregateCalls, aggregateStats, appendActivity, newCollectState, summarizeSession } from '../src/core.js'
+import { activityFromEvent, aggregateCalls, aggregateStats, appendActivity, newCollectState, parseSkillName, recordSessionMeta, summarizeSession } from '../src/core.js'
 import type { SessionSummary } from '../src/types.js'
 
 const header = {
@@ -78,9 +78,10 @@ describe('usage statistics core', () => {
   })
 
   it('updates a cached session monotonically and ignores duplicate events', () => {
-    const summary: SessionSummary = { id: 's-main', createdAt: 0, lastSeq: -1, indexedAt: 0, activities: [] }
+    const summary: SessionSummary = { id: 's-main', createdAt: 0, lastSeq: -1, indexedAt: 0, activities: [], tools: {}, skills: {} }
     expect(appendActivity(summary, human(0, '2026-08-01T01:00:00Z'), 1234)).toBe(true)
     expect(summary.indexedAt).toBe(1234)
+    expect(summary.firstAt).toBe(Date.parse('2026-08-01T01:00:00Z'))
     expect(appendActivity(summary, human(0, '2026-08-01T01:00:00Z'))).toBe(false)
     expect(summary.activities).toHaveLength(1)
   })
@@ -272,5 +273,111 @@ describe('per-call detail (calls)', () => {
     expect(result.total).toBe(2)
     expect(result.items.map(item => item.seq)).toEqual([3, 2])
     expect(aggregateStats([summary], { from: '2026-08-01', to: '2026-08-01', timeZone: 'UTC', scope: 'all' }).days[0]?.calls).toBe(3)
+  })
+})
+
+function toolCall(seq: number, time: string, name: string, argumentsJson = '{}'): SessionEvent {
+  return { type: 'tool/call', seq, time: Date.parse(time), surfaceOp: 'append', data: { turn: 0, step: 0, callId: `c${seq}`, name, arguments: argumentsJson } } as unknown as SessionEvent
+}
+
+function assistantOn(seq: number, time: string, model: string, tokens: number): SessionEvent {
+  return {
+    type: 'assistant/message', seq, time: Date.parse(time), surfaceOp: 'append',
+    data: { turn: 0, step: 0, message: { id: `m${seq}`, role: 'assistant', content: [], source: { kind: 'model', provider: 'deepseek', model } }, usage: { inputTokens: tokens, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 } },
+  } as unknown as SessionEvent
+}
+
+function freshSummary(id: string): SessionSummary {
+  return { id, createdAt: 0, lastSeq: -1, indexedAt: 0, activities: [], tools: {}, skills: {} }
+}
+
+describe('activity dashboard metrics', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('tracks skill and tool invocations from replayed sessions', () => {
+    const summary = summarizeSession(header, [
+      toolCall(0, '2026-08-01T01:00:00Z', 'skill', '{"name":"paper-plan"}'),
+      toolCall(1, '2026-08-01T01:00:01Z', 'skill', '{"name":"paper-plan"}'),
+      toolCall(2, '2026-08-01T01:00:02Z', 'skill', '{"name":"arxiv"}'),
+      toolCall(3, '2026-08-01T01:00:03Z', 'bash'),
+      toolCall(4, '2026-08-01T01:00:04Z', 'skill', 'not-json'),
+    ])
+    expect(summary.skills).toEqual({ 'paper-plan': 2, arxiv: 1 })
+    expect(summary.tools).toEqual({ bash: 1 })
+    expect(parseSkillName('{"name":"x"}')).toBe('x')
+    expect(parseSkillName('{broken')).toBeNull()
+    expect(parseSkillName({})).toBeNull()
+  })
+
+  it('updates live tool counters and session spans monotonically', () => {
+    const summary = freshSummary('s-live')
+    expect(appendActivity(summary, toolCall(0, '2026-08-01T01:00:00Z', 'skill', '{"name":"arxiv"}'), 111)).toBe(true)
+    expect(appendActivity(summary, toolCall(1, '2026-08-01T02:00:00Z', 'myplugin'), 222)).toBe(true)
+    expect(summary.skills).toEqual({ arxiv: 1 })
+    expect(summary.tools).toEqual({ myplugin: 1 })
+    expect(summary.firstAt).toBe(Date.parse('2026-08-01T01:00:00Z'))
+    expect(summary.lastAt).toBe(Date.parse('2026-08-01T02:00:00Z'))
+    expect(appendActivity(summary, toolCall(0, '2026-08-01T01:00:00Z', 'myplugin'))).toBe(false)
+    expect(summary.tools).toEqual({ myplugin: 1 })
+  })
+
+  it('computes peak day, streaks, longest chat, and fast-mode share', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.parse('2026-08-04T12:00:00Z'))
+    const sessionA = summarizeSession(header, [
+      human(0, '2026-08-02T01:00:00Z'),
+      assistantOn(1, '2026-08-02T01:01:00Z', 'deepseek-chat', 170),
+      assistantOn(2, '2026-08-03T01:01:00Z', 'deepseek-chat', 500),
+      assistantOn(3, '2026-08-04T09:00:00Z', 'deepseek-chat', 100),
+    ])
+    const sessionB = summarizeSession({ ...header, id: 's-b' } as unknown as SessionHeader, [
+      assistantOn(0, '2026-07-28T01:00:00Z', 'deepseek-chat', 170),
+      assistantOn(1, '2026-07-29T01:00:00Z', 'deepseek-chat', 170),
+      assistantOn(2, '2026-07-30T01:00:00Z', 'deepseek-chat', 170),
+      assistantOn(3, '2026-07-31T01:00:00Z', 'deepseek-chat', 170),
+    ])
+    const sessionC = summarizeSession({ ...header, id: 's-c' } as unknown as SessionHeader, [
+      toolCall(0, '2026-08-02T01:00:00Z', 'skill', '{"name":"paper-plan"}'),
+      toolCall(1, '2026-08-02T01:00:01Z', 'skill', '{"name":"paper-plan"}'),
+      requestHeader(2, 'max'),
+      assistantOn(3, '2026-08-02T01:00:02Z', 'qwen-flash', 90),
+    ])
+    const result = aggregateStats([sessionA, sessionB, sessionC], { from: '2026-07-01', to: '2026-08-04', timeZone: 'UTC', scope: 'all' }, { fastModelPattern: /flash/i })
+    expect(result.allTime.totals.peakDayTokens).toBe(500)
+    expect(result.allTime.totals.currentStreak).toBe(3)
+    expect(result.allTime.totals.longestStreak).toBe(4)
+    expect(result.allTime.totals.longestSessionMs).toBe(Date.parse('2026-07-31T01:00:00Z') - Date.parse('2026-07-28T01:00:00Z'))
+    expect(result.allTime.totals.chats).toBe(3)
+    expect(result.allTime.totals.totalCalls).toBe(8)
+    expect(result.allTime.totals.fastCalls).toBe(1)
+    expect(result.allTime.totals.skillInvocations).toBe(2)
+    expect(result.allTime.totals.uniqueSkills).toBe(1)
+    expect(result.allTime.totals.efforts).toEqual([{ id: 'max', calls: 1, percent: 12.5 }])
+    expect(result.topPlugins).toEqual([{ name: 'paper-plan', runs: 2 }])
+  })
+
+  it('anchors the current streak at yesterday when today is still empty', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.parse('2026-08-05T00:30:00Z'))
+    const sessionA = summarizeSession(header, [
+      assistantOn(0, '2026-08-02T01:00:00Z', 'deepseek-chat', 10),
+      assistantOn(1, '2026-08-03T01:00:00Z', 'deepseek-chat', 10),
+      assistantOn(2, '2026-08-04T01:00:00Z', 'deepseek-chat', 10),
+    ])
+    const result = aggregateStats([sessionA], { from: '2026-08-01', to: '2026-08-05', timeZone: 'UTC', scope: 'all' })
+    expect(result.allTime.totals.currentStreak).toBe(3)
+  })
+
+  it('excludes configured built-in tools from the plugin ranking', () => {
+    const summary = summarizeSession(header, [
+      toolCall(0, '2026-08-01T01:00:00Z', 'skill', '{"name":"arxiv"}'),
+      toolCall(1, '2026-08-01T01:00:01Z', 'bash'),
+      toolCall(2, '2026-08-01T01:00:02Z', 'myplugin'),
+    ])
+    const ranked = aggregateStats([summary], { from: '2026-08-01', to: '2026-08-01', timeZone: 'UTC', scope: 'all' }, { pluginToolExclude: new Set(['bash']) })
+    expect(ranked.topPlugins).toEqual([
+      { name: 'arxiv', runs: 1 },
+      { name: 'myplugin', runs: 1 },
+    ])
   })
 })
