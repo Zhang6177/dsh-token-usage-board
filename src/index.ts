@@ -196,7 +196,11 @@ class UsageIndex {
       const parsed: unknown = JSON.parse(await readFile(this.cachePath, 'utf8'))
       if (!isCache(parsed)) return true
       for (const session of parsed.sessions) {
-        if (typeof session.id === 'string' && Array.isArray(session.activities)) this.sessions.set(session.id, session)
+        if (typeof session.id !== 'string' || !Array.isArray(session.activities)) continue
+        // Defensively normalize records written before the counters existed.
+        if (typeof session.tools !== 'object' || session.tools === null) session.tools = {}
+        if (typeof session.skills !== 'object' || session.skills === null) session.skills = {}
+        this.sessions.set(session.id, session)
       }
       return false
     } catch (error) {
