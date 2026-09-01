@@ -39,13 +39,14 @@ const pending = new Map()
 socket.addEventListener('message', event => {
   const message = JSON.parse(event.data)
   const waiter = pending.get(message.id)
+  if (message.error) process.stderr.write(`[cdp] id=${message.id} ERROR ${JSON.stringify(message.error)}\n`)
   if (!waiter) return
   pending.delete(message.id)
-  message.error ? waiter.reject(new Error(message.error.message)) : waiter.resolve(message.result)
+  message.error ? waiter.reject(new Error(`${waiter.method} failed: ${message.error.message}`)) : waiter.resolve(message.result)
 })
 const send = (method, params = {}) => new Promise((resolvePromise, reject) => {
   const requestId = ++id
-  pending.set(requestId, { resolve: resolvePromise, reject })
+  pending.set(requestId, { method, resolve: resolvePromise, reject })
   socket.send(JSON.stringify({ id: requestId, method, params }))
 })
 const evaluate = async expression => {
@@ -60,38 +61,48 @@ await send('Page.navigate', { url: appUrl })
 await waitForValue(() => evaluate(`document.readyState === 'complete'`), 'page load')
 await waitForValue(() => evaluate(`Boolean(document.querySelector('[data-usage-stats].us-nav'))`), 'sidebar entry')
 await evaluate(`document.querySelector('[data-usage-stats].us-nav').click()`)
-await waitForValue(() => evaluate(`document.querySelectorAll('.us-card').length === 6`), 'dashboard')
-await new Promise(resolvePromise => setTimeout(resolvePromise, 250))
-await evaluate(`(() => {
-  const notice = [...document.querySelectorAll('h1, h2, h3, div')].find(node => node.textContent?.trim() === '内测声明')
-  if (!notice) return false
-  const button = [...document.querySelectorAll('button')].find(node => node.textContent?.trim() === '继续')
-  if (!button) return false
-  button.click()
-  return true
-})()`)
-await new Promise(resolvePromise => setTimeout(resolvePromise, 250))
+await waitForValue(() => evaluate(`document.querySelectorAll('.us-stats-strip .us-stat-cell').length === 5`), 'dashboard')
+await waitForValue(() => evaluate(`document.querySelectorAll('.us-heat .us-cell').length === 371`), 'activity heatmap')
+await new Promise(resolvePromise => setTimeout(resolvePromise, 255))
+// Dismiss the built-in DSH welcome/onboarding dialogs (locale-independent).
+for (let attempt = 0; attempt < 5; attempt += 1) {
+  const result = await evaluate(`(() => {
+    const wanted = new Set(['继续', 'Continue', '知道了', 'Got it', '关闭', 'Close', '稍后配置', 'Configure later'])
+    const dialogs = [...document.querySelectorAll('div[role="presentation"]')]
+      .filter(dialog => dialog.querySelector('[class*="_mask_"]') || dialog.querySelector('[role="dialog"]'))
+    if (dialogs.length === 0) return 'none'
+    for (const dialog of dialogs) {
+      const button = [...dialog.querySelectorAll('button')].find(node => wanted.has(node.textContent?.trim()))
+      if (button) { button.click(); return 'clicked' }
+    }
+    for (const dialog of dialogs) {
+      if (/Internal Testing|Add an API key|内测声明|API 密钥/i.test(dialog.textContent ?? '')) dialog.remove()
+    }
+    return 'removed'
+  })()`)
+  await new Promise(resolvePromise => setTimeout(resolvePromise, 350))
+  if (result !== 'clicked') break
+}
 
 const report = await evaluate(`(() => {
-  const columns = [...document.querySelectorAll('.us-bar-column')]
-  const zeroColumns = columns.filter(column => !column.querySelector('.us-bar-segment'))
   const shell = document.querySelector('.us-shell')
   return {
-    cards: document.querySelectorAll('.us-card').length,
-    dateInputs: document.querySelectorAll('input[type="date"]').length,
-    selects: document.querySelectorAll('.us-select').length,
-    trendColumns: columns.length,
-    zeroColumns: zeroColumns.length,
-    zeroHitTargets: zeroColumns.filter(column => column.querySelector('.us-bar-hit')).length,
-    visibleHitTargets: document.querySelectorAll('.us-bar-hit').length,
-    callRows: document.querySelectorAll('.us-calls-table tbody tr').length,
-    retentionLabel: document.querySelector('.us-calls-max-records .us-select-trigger')?.textContent?.trim(),
+    statCells: document.querySelectorAll('.us-stats-strip .us-stat-cell').length,
+    heatCells: document.querySelectorAll('.us-heat .us-cell').length,
+    monthLabels: document.querySelectorAll('.us-heat-months span').length,
+    modeButtons: document.querySelectorAll('.us-segment button').length,
+    insightsRows: document.querySelectorAll('.us-duo-row').length,
+    pluginRows: document.querySelectorAll('.us-plugin-row').length,
+    pieRows: document.querySelectorAll('.us-pie-row').length,
     fontFamily: getComputedStyle(shell).fontFamily,
-    overflowX: getComputedStyle(document.querySelector('.us-chart-scroll')).overflowX,
   }
 })()`)
 
-if (report.cards !== 6 || report.dateInputs !== 0 || report.selects !== 6 || report.zeroHitTargets !== 0 || report.callRows !== 5 || !report.retentionLabel?.includes('1,000')) {
+if (
+  report.statCells !== 5 || report.heatCells !== 371 || report.monthLabels !== 53 ||
+  report.modeButtons !== 4 || report.insightsRows !== 5 ||
+  report.pluginRows < 1 || report.pieRows < 1
+) {
   throw new Error(`UI contract failed: ${JSON.stringify(report)}`)
 }
 
@@ -104,14 +115,15 @@ if (screenshotDir) {
     return buffer
   }
   await evaluate(`document.body.removeAttribute('data-ds-dark-theme'); document.querySelector('.us-scroll').scrollTop = 0`)
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 600, deviceScaleFactor: 1.5, mobile: false })
   await new Promise(resolvePromise => setTimeout(resolvePromise, 900))
-  const fullHeight = await evaluate(`Math.ceil(document.querySelector('.us-top').offsetHeight + document.querySelector('.us-scroll').scrollHeight)`)
+  const fullHeight = await evaluate(`Math.ceil(document.querySelector('.us-top').offsetHeight + document.querySelector('.us-content').offsetHeight + 50)`)
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: fullHeight, deviceScaleFactor: 1.5, mobile: false })
   await new Promise(resolvePromise => setTimeout(resolvePromise, 350))
-  await capture('dashboard-light-full.png')
+await capture('dashboard-light-full.png')
   await evaluate(`document.body.setAttribute('data-ds-dark-theme', '')`)
   await new Promise(resolvePromise => setTimeout(resolvePromise, 250))
-  await capture('dashboard-dark-full.png')
+await capture('dashboard-dark-full.png')
 
   await send('Emulation.setDeviceMetricsOverride', { width: 960, height: 600, deviceScaleFactor: 1, mobile: false })
   await evaluate(`document.body.removeAttribute('data-ds-dark-theme'); document.querySelector('.us-scroll').scrollTop = 0`)
@@ -163,22 +175,37 @@ if (screenshotDir) {
       await addFrame(90)
     }
   }
-  await addFrame(900)
-  const heatTop = await evaluate(`Math.max(0, document.querySelector('.us-heat-panel').offsetTop - 18)`)
+  const clickMode = async (...labels) => {
+    const clicked = await evaluate(`(() => {
+      const candidates = ${JSON.stringify(labels)}
+      for (const button of document.querySelectorAll('.us-segment button')) {
+        if (candidates.includes(button.textContent.trim())) { button.click(); return button.textContent.trim() }
+      }
+      return null
+    })()`)
+    if (!clicked) throw new Error(`Unable to find mode button: ${labels.join(' / ')}`)
+    await new Promise(resolvePromise => setTimeout(resolvePromise, 350))
+  }
+await addFrame(900)
+  const heatTop = await evaluate(`Math.max(0, document.querySelector('.us-heat').closest('.us-panel').offsetTop - 18)`)
   await scrollTo(heatTop, 3)
-  await hover('.us-cell-tip[data-level="5"]')
+await hover('.us-cell-tip[data-level="5"]')
   await addFrame(950)
-  const trendTop = await evaluate(`Math.max(0, document.querySelector('.us-trend').offsetTop - 18)`)
-  await scrollTo(trendTop, 6)
-  await hover('.us-bar-hit')
+await clickMode('每周', 'Weekly')
+  await addFrame(700)
+await hover('.us-bar')
   await addFrame(1050)
-  const callsTop = await evaluate(`Math.max(0, document.querySelector('.us-calls-table').closest('.us-panel').offsetTop - 18)`)
-  await scrollTo(callsTop, 9)
-  await hover('.us-calls-table tbody tr')
+await clickMode('累计', 'Cumulative')
+  await addFrame(900)
+await clickMode('每日', 'Daily')
+  await addFrame(500)
+  const duoTop = await evaluate(`Math.max(0, document.querySelector('.us-duo').offsetTop - 18)`)
+  await scrollTo(duoTop, 6)
+await hover('.us-plugin-row')
   await addFrame(850)
   await scrollTo(0, 8)
   await addFrame(1100)
-  await sharp(frames, { join: { animated: true } }).gif({ loop: 0, delay: delays, colours: 128, dither: 0.7, effort: 8 }).toFile(resolve(screenshotDir, 'usage-demo.gif'))
+await sharp(frames, { join: { animated: true } }).gif({ loop: 0, delay: delays, colours: 128, dither: 0.7, effort: 8 }).toFile(resolve(screenshotDir, 'usage-demo.gif'))
 }
 
 console.log(JSON.stringify(report, null, 2))

@@ -80,7 +80,11 @@ function sampleSessions() {
       cwd: sessionIndex % 3 === 0 ? 'D:\\Projects\\sample-app' : 'D:\\Projects\\docs-site',
       lastSeq: seq - 1,
       indexedAt: Date.now(),
+      firstAt: activities[0]?.time,
+      lastAt: activities.at(-1)?.time,
       activities,
+      tools: sessionIndex % 4 === 0 ? { 'sample-review-tool': 1 + (sessionIndex % 3) } : {},
+      skills: sessionIndex % 3 === 0 ? { 'paper-plan': 1, 'literature-search': sessionIndex % 2 } : sessionIndex % 5 === 0 ? { 'experiment-plan': 2 } : {},
     }
   })
 }
@@ -88,7 +92,7 @@ function sampleSessions() {
 try {
   await mkdir(packageDir, { recursive: true })
   await mkdir(join(dshHome, 'usage-stats'), { recursive: true })
-  await writeFile(join(dshHome, 'usage-stats', 'index-v1.json'), JSON.stringify({ schema: 4, sessions: sampleSessions() }), 'utf8')
+  await writeFile(join(dshHome, 'usage-stats', 'index-v1.json'), JSON.stringify({ schema: 5, sessions: sampleSessions() }), 'utf8')
   await runNode(npmCli, ['run', 'build'])
   const packed = await runNode(npmCli, ['pack', '--json', '--ignore-scripts', '--pack-destination', packageDir])
   const filename = JSON.parse(packed.stdout)[0]?.filename
