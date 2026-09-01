@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%7C%7C%20%3E%3D24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/npm/l/dsh-usage-stats?style=flat-square)](./LICENSE)
 
-dsh-usage-stats is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents lifetime token totals, daily trends, activity dates, and model distribution in one dashboard.
+dsh-usage-stats is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents an activity dashboard: total / peak tokens, longest chat duration, active-day streaks, daily / weekly / monthly / cumulative token activity views, activity insights (fast mode, reasoning effort, skill usage), most-used plugins, and per-model token share.
 
 The plugin integrates through Harness extension APIs without modifying the Web UI or official npm packages. Statistics remain on the local machine.
 
@@ -51,11 +51,11 @@ dsh plugin --profile web remove dsh-usage-stats
 
 | Module | Description |
 | --- | --- |
-| **Overview** | Lifetime token, session, message, active-day, streak, and top-model totals |
-| **Daily trends** | Recent 7-day or 30-day token usage with per-model hover details |
-| **Activity heatmap** | One year of activity levels with daily token and call details |
-| **Scope filters** | Filter by workspace, main task, or subtask |
-| **Call details** | Inspect per-call latency, tokens, cache rate, model, and reasoning effort with filters and pagination |
+| **Core stats** | Total tokens, peak single-day tokens, longest chat duration, current / longest streak |
+| **Token activity** | 53-week activity view with daily heatmap / weekly / monthly / cumulative toggle |
+| **Activity insights** | Fast-mode share, top reasoning effort, skills explored, skill invocations, total chats |
+| **Most used plugins** | Top-5 most-run skills / plugin tools by run count |
+| **Model share** | Per-model token share ring chart with legend |
 | **Data export** | Export CSV or JSON for archival or further analysis |
 | **Chinese and English UI** | Follow the Harness language setting automatically |
 | **Theme support** | Follow the Harness light or dark theme automatically |
@@ -78,6 +78,8 @@ config:
   indexConcurrency: 2
   cacheWriteDelayMs: 1000
   apiPath: /usage-stats/v1
+  fastModelPattern: flash|turbo|lite|nano|haiku|fast|mini
+  pluginToolExclude: [bash, read, write, ...]
 ```
 
 | Option | Description | Default |
@@ -86,6 +88,8 @@ config:
 | `cacheWriteDelayMs` | Delay before updating the local index, in milliseconds | `1000` |
 | `cachePath` | Custom index location | Harness data directory |
 | `apiPath` | Statistics API path | `/usage-stats/v1` |
+| `fastModelPattern` | Case-insensitive regex of model ids that count as "fast" models, used for the fast-mode insight | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
+| `pluginToolExclude` | Tool names excluded from the Most Used Plugins ranking (built-in tools by default) | Built-in tool set |
 
 ## Privacy and security
 

@@ -3,17 +3,34 @@
 All notable changes are documented here. This project follows Semantic
 Versioning while DeepSeek Harness remains in developer preview.
 
-## [Unreleased]
+## [0.2.0] - 2026-09-01
+
+### Added
+
+- New activity dashboard: a five-stat strip (total tokens, peak single-day
+  tokens, longest chat duration, current streak, longest streak), a Token
+  Activity panel with daily / weekly / monthly / cumulative views over the
+  last 53 weeks, an Activity Insights panel (fast-mode share, top reasoning
+  effort, skills explored, skill invocations, total chats), a Most Used
+  Plugins ranking, and a per-model token share pie chart.
+- Per-session tool/skill invocation counters (from `tool/call` events) and
+  activity spans (first/last event timestamps) in the local index, stored as
+  schema 5.
+- `fastModelPattern` config: a case-insensitive regex identifying fast models
+  (default `flash|turbo|lite|nano|haiku|fast|mini`) used for the fast-mode
+  insight.
+- `pluginToolExclude` config: tool names excluded from the Most Used Plugins
+  ranking; defaults to the built-in DSH tool set.
 
 ### Changed
 
-- Refreshed the light-theme demo and both full-page screenshots to show the
-  current call-detail interface with anonymous example data.
-- Added a repeatable isolated capture workflow for keeping README media in sync
-  with future dashboard updates.
-- Reduced the default call-detail page size to five rows while preserving each
-  user's most recent selection, and added heatmap, chart, and row hover moments
-  to the demo animation.
+- Replaced the previous overview / trend / call-detail dashboard with the new
+  activity view. The call-detail table is no longer rendered in the UI; the
+  `GET /usage-stats/v1/calls` endpoint and CSV/JSON exports remain available.
+- The current active-day streak now anchors at today, falling back to
+  yesterday when today has no activity yet (GitHub-style semantics).
+- Rebuild schema-4 caches as schema 5; one full historical reindex runs the
+  first time the plugin starts after upgrade.
 
 ## [0.1.16] - 2026-08-17
 
