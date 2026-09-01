@@ -76,7 +76,7 @@ try {
   const installedManifest = JSON.parse(await readFile(join(dirname(profilePath), 'node_modules', 'dsh-usage-stats', 'package.json'), 'utf8'))
   const bundledOfficialPackages = Object.keys(installedManifest.dependencies ?? {}).filter(name => name.startsWith('@deepseek-ai/'))
   if (bundledOfficialPackages.length > 0) throw new Error(`Installed plugin has regular official dependencies: ${bundledOfficialPackages.join(', ')}`)
-  if (installedManifest.version !== '0.1.16') throw new Error(`Unexpected installed plugin version: ${installedManifest.version}`)
+  if (installedManifest.version !== '0.2.0') throw new Error(`Unexpected installed plugin version: ${installedManifest.version}`)
 
   const dump = await runNode(dshBin, ['--profile', 'web', '--dump-config'])
   if (!dump.stdout.includes('dsh-usage-stats')) throw new Error('Composed config does not contain the plugin')
@@ -123,8 +123,8 @@ try {
     if (rebuiltCache.schema === 4) break
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  if (rebuiltCache?.schema !== 4 || !Array.isArray(rebuiltCache.sessions) || rebuiltCache.sessions.length !== 0) {
-    throw new Error('Cache was not rebuilt with schema 4')
+  if (rebuiltCache?.schema !== 5 || !Array.isArray(rebuiltCache.sessions) || rebuiltCache.sessions.length !== 0) {
+    throw new Error('Cache was not rebuilt with schema 5')
   }
   const callsResponse = await fetch(`${url}/usage-stats/v1/calls?${query}&page=1&pageSize=50`)
   const calls = await callsResponse.json()
@@ -147,7 +147,7 @@ try {
   if (removed.dependencies?.['dsh-usage-stats'] !== undefined) throw new Error('Plugin dependency survived removal')
   if (removed.dsh?.profile?.bundles?.includes('dsh-usage-stats')) throw new Error('Bundle survived removal')
 
-  console.log('Clean-profile lifecycle verified: pack, install, schema-3 invalidation, compose, boot, API, calls, export, method fence, schema-4 rebuild, remove.')
+  console.log('Clean-profile lifecycle verified: pack, install, stale-cache invalidation, compose, boot, API, calls, export, method fence, schema-5 rebuild, remove.')
 } finally {
   await stopServer()
   await rm(temporary, { recursive: true, force: true })
