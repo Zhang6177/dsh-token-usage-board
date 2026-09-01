@@ -5,7 +5,8 @@ describe('i18n', () => {
   it('translates and interpolates Chinese and English copy', () => {
     expect(translate('zh', 'nav')).toBe('使用统计')
     expect(translate('en', 'nav')).toBe('Usage Stats')
-    expect(translate('en', 'inputOutputDetail', { input: '10K', output: '2K' })).toBe('Input 10K · Output 2K')
+    expect(translate('en', 'dayDetail', { date: '8/17', tokens: '1.2K', token: 'tokens', calls: 3, callsUnit: 'calls' })).toBe('8/17 · 1.2K tokens · 3 calls')
+expect(translate('zh', 'hourMinute', { h: 9, m: 56 })).toBe('9 小时 56 分')
   })
 
   it('maps locale tags and number locales', () => {
