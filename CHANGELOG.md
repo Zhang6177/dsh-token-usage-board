@@ -3,6 +3,31 @@
 All notable changes are documented here. This project follows Semantic
 Versioning while DeepSeek Harness remains in developer preview.
 
+## [0.2.1] - 2026-09-03
+
+### Changed
+
+- The dashboard no longer takes over the full screen. It now rides the center
+  conversation column exactly like dsh-client-ui-task-board / cron-explorer
+  (an extra trailing child of the conversation column, visibility driven by an
+  attribute on `<html>`, the conversation subtree staying mounted underneath).
+  The sidebar entry toggles it: one click opens the panel over the
+  conversation, another click (or Escape, or clicking a session/workspace row)
+  collapses it. The panel participates in the single-occupant center-column
+  exclusion protocol, so opening it closes the task board / cron board / ssh
+  view, and activating any of those closes it in turn.
+
+### Added
+
+- Hover feedback on every chart, matching the "daily" token-activity grid:
+  an immediate floating tooltip (shared `useFloatingTip`) plus a highlight.
+  The weekly/monthly bar charts anchor the tooltip above the hovered bar (the
+  whole column is the hover target, so near-zero bars still respond), the
+  model pie hit-tests the conic ring under the cursor (dimming the other
+  slices and highlighting the matching legend row, with legend hover driving
+  the pie in reverse), and the cumulative chart adds a crosshair guide with a
+  point marker and a running-total tooltip.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added

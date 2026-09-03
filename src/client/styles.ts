@@ -25,11 +25,43 @@ body[data-ds-dark-theme] [data-usage-stats] {
   --us-border: var(--dsw-alias-border-l1, #35383e);
 }
 [data-usage-stats] *, [data-usage-stats] *::before, [data-usage-stats] *::after { box-sizing: border-box; }
+
+/* --- center-column takeover (global rules, attribute-scoped) ---------------
+   Same single-occupant protocol as dsh-client-ui-task-board / cron-explorer:
+   the dashboard rides inside the conversation column as an extra trailing
+   child; toggling is a data attribute on <html>; the conversation subtree
+   underneath stays mounted and stateful. */
+[data-pane='conversation'],
+[class*='centerCol'] {
+  position: relative;
+}
+[data-dsh-usage-stats-view] {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 60;
+  /* Opaque backdrop: the conversation subtree stays mounted underneath. */
+  background: var(--dsw-alias-bg-base, #ffffff);
+}
+html[data-dsh-usage-stats-active] [data-dsh-usage-stats-view] {
+  display: block;
+}
+/* While the panel is active, the conversation content underneath is hidden.
+   The !important is required: the dsh shell wraps the conversation view in a
+   node with an inline "display: contents", and inline styles beat a plain
+   stylesheet rule. Without it the composer (input card) stays visible at the
+   bottom and paints over the panel. */
+html[data-dsh-usage-stats-active] [data-pane='conversation'] > :not([data-dsh-usage-stats-view]),
+html[data-dsh-usage-stats-active] [class*='centerCol'] > :not([data-dsh-usage-stats-view]) {
+  display: none !important;
+}
+
 .us-nav { width: 100%; height: 38px; border: 0; border-radius: 10px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 0 10px; color: var(--us-muted); background: transparent; cursor: pointer; font: inherit; }
 .us-nav:hover { color: var(--us-text); background: var(--us-hover); }
+.us-nav[data-active] { color: var(--us-text); background: var(--us-hover); font-weight: 600; }
 .us-nav[data-rail="true"] { width: 36px; padding: 0; justify-content: center; }
 .us-nav svg { flex: none; }
-.us-shell { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--us-bg); overflow: hidden; animation: us-enter 180ms ease-out; }
+.us-shell { height: 100%; display: flex; flex-direction: column; background: var(--us-bg); overflow: hidden; animation: us-enter 180ms ease-out; }
 .us-top { min-height: 90px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px clamp(24px, 4vw, 58px) 10px; }
 .us-heading { display: flex; align-items: flex-end; gap: 20px; }
 .us-title { font-size: clamp(28px, 3vw, 40px); line-height: 1.12; font-weight: 750; letter-spacing: -.045em; }
@@ -91,7 +123,9 @@ body[data-ds-dark-theme] .us-cell[data-level="5"] { background: #67b7ff; }
 .us-cum-frame svg { display: block; width: 100%; height: 100%; }
 .us-cum-area { fill: color-mix(in srgb, var(--us-accent) 16%, transparent); }
 .us-cum-line { fill: none; stroke: var(--us-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.us-cum-peak { position: absolute; right: 4px; top: 0; color: var(--us-muted); font-size: 11px; }
+.us-cum-peak { position: absolute; right: 4px; top: 0; color: var(--us-muted); font-size: 11px; pointer-events: none; }
+.us-cum-guide { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in srgb, var(--us-text) 32%, transparent); pointer-events: none; }
+.us-cum-dot { position: absolute; width: 10px; height: 10px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--us-accent); box-shadow: 0 0 0 2px var(--us-surface); pointer-events: none; }
 .us-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 .us-duo .us-panel { margin-top: 0; }
 .us-duo-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 11px 2px; border-bottom: 1px solid color-mix(in srgb, var(--us-border) 55%, transparent); }
@@ -110,8 +144,9 @@ body[data-ds-dark-theme] .us-cell[data-level="5"] { background: #67b7ff; }
 .us-pie-center { z-index: 1; text-align: center; font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; }
 .us-pie-center small { display: block; margin-top: 3px; color: var(--us-muted); font-weight: 400; font-size: 11px; }
 .us-pie-legend { display: grid; gap: 2px; }
-.us-pie-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--us-border) 45%, transparent); }
+.us-pie-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 8px 8px; border-bottom: 1px solid color-mix(in srgb, var(--us-border) 45%, transparent); border-radius: 8px; }
 .us-pie-row:last-child { border-bottom: 0; }
+.us-pie-row[data-active] { background: var(--us-hover); }
 .us-pie-dot { width: 9px; height: 9px; border-radius: 50%; }
 .us-pie-name { overflow: hidden; font-weight: 560; text-overflow: ellipsis; white-space: nowrap; }
 .us-pie-tokens { color: var(--us-muted); font-size: 12px; font-variant-numeric: tabular-nums; }

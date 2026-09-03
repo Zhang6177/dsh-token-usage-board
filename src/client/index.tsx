@@ -1,11 +1,12 @@
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRuntime, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { createRoot, type Root } from 'react-dom/client'
 import type { DayStats, StatsSnapshot } from '../types.js'
 import { formatDateLabel, installLocale, useLocale, type I18nKey, type Language } from './i18n.js'
 import { styles } from './styles.js'
@@ -24,31 +25,48 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }): ReactNode
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
 
-class VisibilityController {
+/**
+ * Center-column panel state with the task-board / cron-explorer exclusion
+ * protocol. Visibility is driven by an attribute on <html>; the view element
+ * is a direct child of the conversation column (see mountPanel).
+ */
+class PanelController {
   private open = false
   private listeners = new Set<() => void>()
   getSnapshot = (): boolean => this.open
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
-  show = (): void => { this.set(true) }
-  hide = (): void => { this.set(false) }
-  private set(value: boolean): void { if (value === this.open) return; this.open = value; for (const listener of this.listeners) listener() }
+  setOpen = (value: boolean): void => { if (value === this.open) return; this.open = value; for (const listener of this.listeners) listener() }
+  show = (): void => { this.setOpen(true) }
+  hide = (): void => { this.setOpen(false) }
+  toggle = (): void => { this.setOpen(!this.open) }
 }
 
+/** Sibling panels of the single-occupant center column (activation attributes). */
+const SIBLING_ATTRS = ['data-dsh-taskboard-active', 'data-dsh-ssh-active', 'data-dsh-cev2-active', 'data-dsh-taskboard-local-active'] as const
+/** Cross-plugin activation event details announcing the other center-column panels. */
+const SIBLING_DETAILS = ['taskboard', 'ssh', 'cron-explorer-v2'] as const
+const ACTIVATE_EVENT = 'dsh-panel-activate'
+const PANEL_NAME = 'usage-stats'
+const ACTIVE_ATTR = 'data-dsh-usage-stats-active'
+const CONVERSATION_COLUMN_SELECTOR = '[data-pane="conversation"], [class*="centerCol"]'
+/** Sidebar context clicks hand the center column back to the conversation. */
+const SIDEBAR_ROW_SELECTOR = '[class*="sessionRow"], [class*="projectRow"], [class*="searchResultRow"], [class*="searchResultWorkspace"], [class*="newSession"]'
+
+/** Component-side view of the entry's inject face: the `hooks` compartment
+ *  arrives bound as a `useController` selector hook, the rest verbatim. */
 interface Injected {
-  useVisibility: <T>(selector: (open: boolean) => T) => T
+  useController: SnapshotSelectorHook<boolean>
   show: () => void
   hide: () => void
+  toggle: () => void
 }
 
-type BoundInjected = Omit<Injected, 'useVisibility'> & {
-  useVisibility: <T>(selector: (open: boolean) => T) => T
-}
-type FooterProps = PropsRuntime<'sidebar.footer.action'> & BoundInjected
-type OverlayProps = PropsRuntime<'shell.overlay'> & BoundInjected
+type FooterProps = PropsRuntime<'sidebar.footer.action'> & Injected
 
-function FooterAction({ wide, show }: FooterProps): ReactNode {
+function FooterAction({ wide, useController, toggle }: FooterProps): ReactNode {
   const { t } = useLocale()
-  return <button data-usage-stats className="us-nav" data-rail={!wide} onClick={show} title={wide ? undefined : t('nav')} aria-label={t('nav')}>
+  const open = useController(value => value)
+  return <button data-usage-stats className="us-nav" data-rail={!wide} data-active={open || undefined} onClick={toggle} title={wide ? undefined : t('nav')} aria-label={t('nav')}>
     <Icon name="chart" />{wide && <span>{t('nav')}</span>}
   </button>
 }
@@ -71,6 +89,31 @@ function compact(value: number, numberLocale: string): string {
 
 function monthShort(date: Date, lang: Language): string {
   return new Intl.DateTimeFormat(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short' }).format(date)
+}
+
+/** Clamp a tooltip anchor x so the floating card stays on screen. */
+function clampTipX(x: number): number {
+  return Math.min(window.innerWidth - 150, Math.max(150, x))
+}
+
+/**
+ * Floating tooltip shared by every chart (the "daily" heat-grid effect):
+ * a fixed-position card portaled to <body>, shown on hover and removed on
+ * leave. Mirrors the host theme via the --us-* tokens on [data-usage-stats].
+ */
+interface FloatingTip {
+  x: number
+  y: number
+  text: string
+}
+
+function useFloatingTip(): { show: (x: number, y: number, text: string) => void; hide: () => void; node: ReactNode } {
+  const [tip, setTip] = useState<FloatingTip | null>(null)
+  const show = useCallback((x: number, y: number, text: string): void => { setTip({ x, y, text }) }, [])
+  const hide = useCallback((): void => { setTip(null) }, [])
+  const node: ReactNode = tip === null ? null
+    : createPortal(<div data-usage-stats className="us-floating-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{tip.text}</div>, document.body)
+  return { show, hide, node }
 }
 
 function formatDuration(ms: number, t: (key: I18nKey, vars?: Record<string, string | number>) => string): string {
@@ -137,7 +180,7 @@ function heatLevel(tokens: number, max: number): number {
 
 function DailyGrid({ days }: { days: DayStats[] }): ReactNode {
   const { t, lang, numberLocale } = useLocale()
-  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null)
+  const { show, hide, node } = useFloatingTip()
   const weeks = useMemo(() => buildWeeks(days), [days])
   const max = Math.max(1, ...days.map(day => day.tokens))
   const monthLabels = useMemo(() => weeks.map((week, index) => {
@@ -146,27 +189,47 @@ function DailyGrid({ days }: { days: DayStats[] }): ReactNode {
   }), [weeks, lang])
   const showTip = (target: HTMLElement, text: string): void => {
     const rect = target.getBoundingClientRect()
-    setTip({ x: Math.min(window.innerWidth - 150, Math.max(150, rect.left + rect.width / 2)), y: rect.top - 10, text })
+    show(clampTipX(rect.left + rect.width / 2), Math.max(4, rect.top - 10), text)
   }
   return <><div className="us-heat-scroll"><div className="us-heat-week"><span>{t('mon')}</span><span>{t('wed')}</span><span>{t('fri')}</span></div><div className="us-heat-body"><div className="us-heat">{weeks.map((week, weekIndex) => week.days.map((day, dayIndex) => {
     if (day === null) return <span className="us-cell" key={`${weekIndex}-${dayIndex}`} data-level={0} aria-hidden="true" />
     const text = t('dayDetail', { date: formatDateLabel(day.date, lang), tokens: compact(day.tokens, numberLocale), token: t('tokenUnit'), calls: day.calls, callsUnit: t('callsSuffix') })
-    return <span className="us-cell us-cell-tip" key={day.date} data-level={heatLevel(day.tokens, max)} aria-label={text} tabIndex={0} onMouseEnter={event => showTip(event.currentTarget, text)} onMouseLeave={() => setTip(null)} onFocus={event => showTip(event.currentTarget, text)} onBlur={() => setTip(null)} />
-  }))}</div><div className="us-heat-months" aria-hidden="true">{monthLabels.map((label, index) => <span key={index}>{label}</span>)}</div></div></div>{tip && createPortal(<div data-usage-stats className="us-floating-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{tip.text}</div>, document.body)}</>
+    return <span className="us-cell us-cell-tip" key={day.date} data-level={heatLevel(day.tokens, max)} aria-label={text} tabIndex={0} onMouseEnter={event => showTip(event.currentTarget, text)} onMouseLeave={hide} onFocus={event => showTip(event.currentTarget, text)} onBlur={hide} />
+  }))}</div><div className="us-heat-months" aria-hidden="true">{monthLabels.map((label, index) => <span key={index}>{label}</span>)}</div></div></div>{node}</>
+}
+
+/** Hover target for one bar column: the tooltip anchors above the bar top. */
+function useBarTip(title: (index: number) => string, value: (index: number) => number, max: number) {
+  const { show, hide, node } = useFloatingTip()
+  const onEnter = useCallback((slot: HTMLElement, index: number): void => {
+    const rect = slot.getBoundingClientRect()
+    const barArea = Math.max(0, rect.height - 18)
+    const top = rect.top + barArea * (1 - Math.min(1, value(index) / max))
+    show(clampTipX(rect.left + rect.width / 2), Math.max(4, top - 10), title(index))
+  }, [show, title, value, max])
+  return { onEnter, hide, node }
 }
 
 function WeeklyBars({ days }: { days: DayStats[] }): ReactNode {
   const { t, lang, numberLocale } = useLocale()
   const weeks = useMemo(() => buildWeeks(days), [days])
-  const totals = weeks.map(week => week.days.reduce((sum, day) => sum + (day?.tokens ?? 0), 0))
+  const totals = useMemo(() => weeks.map(week => week.days.reduce((sum, day) => sum + (day?.tokens ?? 0), 0)), [weeks])
   const max = Math.max(1, ...totals)
+  const tip = useBarTip(index => {
+    const week = weeks[index]
+    if (week === undefined) return ''
+    const end = new Date(week.start)
+    end.setDate(week.start.getDate() + 6)
+    const range = `${formatDateLabel(isoLocal(week.start), lang)} – ${formatDateLabel(isoLocal(end), lang)}`
+    return t('weekDetail', { range, tokens: compact(totals[index] ?? 0, numberLocale), token: t('tokenUnit') })
+  }, index => totals[index] ?? 0, max)
   return <div className="us-bars">{weeks.map((week, index) => {
     const end = new Date(week.start)
     end.setDate(week.start.getDate() + 6)
     const range = `${formatDateLabel(isoLocal(week.start), lang)} – ${formatDateLabel(isoLocal(end), lang)}`
     const title = t('weekDetail', { range, tokens: compact(totals[index] ?? 0, numberLocale), token: t('tokenUnit') })
-    return <div className="us-bar-slot" key={index}><div className="us-bar" style={{ height: `${(totals[index] ?? 0) / max * 100}%` }} title={title} aria-label={title} tabIndex={0} /><span className="us-bar-label">{index % 8 === 0 ? monthShort(week.start, lang) : ''}</span></div>
-  })}</div>
+    return <div className="us-bar-slot" key={index} onMouseEnter={event => tip.onEnter(event.currentTarget, index)} onMouseLeave={tip.hide}><div className="us-bar" style={{ height: `${(totals[index] ?? 0) / max * 100}%` }} aria-label={title} tabIndex={0} /><span className="us-bar-label">{index % 8 === 0 ? monthShort(week.start, lang) : ''}</span></div>
+  })}{tip.node}</div>
 }
 
 function MonthlyBars({ days }: { days: DayStats[] }): ReactNode {
@@ -184,16 +247,24 @@ function MonthlyBars({ days }: { days: DayStats[] }): ReactNode {
     return result
   }, [days])
   const max = Math.max(1, ...months.map(month => month.total))
-  return <div className="us-bars">{months.map(month => {
+  const tip = useBarTip(index => {
+    const month = months[index]
+    if (month === undefined) return ''
+    return t('monthDetail', { month: monthShort(month.label, lang), tokens: compact(month.total, numberLocale), token: t('tokenUnit') })
+  }, index => months[index]?.total ?? 0, max)
+  return <div className="us-bars">{months.map((month, index) => {
     const label = monthShort(month.label, lang)
     const title = t('monthDetail', { month: label, tokens: compact(month.total, numberLocale), token: t('tokenUnit') })
-    return <div className="us-bar-slot" key={month.key}><div className="us-bar" style={{ height: `${month.total / max * 100}%` }} title={title} aria-label={title} tabIndex={0} /><span className="us-bar-label">{label}</span></div>
-  })}</div>
+    return <div className="us-bar-slot" key={month.key} onMouseEnter={event => tip.onEnter(event.currentTarget, index)} onMouseLeave={tip.hide}><div className="us-bar" style={{ height: `${month.total / max * 100}%` }} aria-label={title} tabIndex={0} /><span className="us-bar-label">{label}</span></div>
+  })}{tip.node}</div>
 }
 
 function CumulativeChart({ days }: { days: DayStats[] }): ReactNode {
   const { t, lang, numberLocale } = useLocale()
-  const { points, max, monthMarks } = useMemo(() => {
+  const frameRef = useRef<HTMLDivElement | null>(null)
+  const [hover, setHover] = useState<number | null>(null)
+  const { show, hide, node } = useFloatingTip()
+  const { points, max, monthMarks, values, step } = useMemo(() => {
     let running = 0
     const pointValues = days.map(day => (running += day.tokens))
     const peak = Math.max(1, running)
@@ -209,14 +280,40 @@ function CumulativeChart({ days }: { days: DayStats[] }): ReactNode {
       const monthIndex = Math.min(52, Math.floor(index / 7))
       marks[monthIndex] = monthShort(new Date(Number(current.date.slice(0, 4)), Number(current.date.slice(5, 7)) - 1), lang)
     }
-    return { points: pointList.join(' '), max: peak, monthMarks: marks }
+    return { points: pointList.join(' '), max: peak, monthMarks: marks, values: pointValues, step }
   }, [days, lang])
+  const onMove = (event: ReactMouseEvent<HTMLDivElement>): void => {
+    const frame = frameRef.current
+    if (frame === null || days.length === 0) return
+    const rect = frame.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return
+    const frac = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+    const index = Math.min(days.length - 1, Math.round(frac * (days.length - 1)))
+    const day = days[index]
+    const value = values[index]
+    if (day === undefined || value === undefined) return
+    const x = rect.left + (days.length > 1 ? (index / (days.length - 1)) * rect.width : 0)
+    const y = rect.top + (1 - value / max) * rect.height
+    setHover(index)
+    show(clampTipX(x), Math.max(4, y - 12), t('cumulativeDetail', { date: formatDateLabel(day.date, lang), tokens: compact(value, numberLocale), token: t('tokenUnit') }))
+  }
+  const onLeave = (): void => { setHover(null); hide() }
   const areaPath = points.length > 0 ? `M0,190 L${points} L720,190 Z` : ''
-  return <div className="us-cum-wrap"><div className="us-cum-frame"><svg viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label={t('modeCumulative')}>
-    <path className="us-cum-area" d={areaPath} />
-    <polyline className="us-cum-line" points={points} />
-  </svg><span className="us-cum-peak">{compact(max, numberLocale)} {t('tokenUnit')}</span></div>
+  const hoverFrac = hover === null || days.length <= 1 ? 0 : hover / (days.length - 1)
+  const hoverValue = hover === null ? undefined : values[hover]
+  return <div className="us-cum-wrap"><div className="us-cum-frame" ref={frameRef} onMouseMove={onMove} onMouseLeave={onLeave}>
+    <svg viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label={t('modeCumulative')}>
+      <path className="us-cum-area" d={areaPath} />
+      <polyline className="us-cum-line" points={points} />
+    </svg>
+    {hover !== null && hoverValue !== undefined && <>
+      <span className="us-cum-guide" style={{ left: `${hoverFrac * 100}%` }} aria-hidden="true" />
+      <span className="us-cum-dot" style={{ left: `${hoverFrac * 100}%`, top: `${(1 - hoverValue / max) * 100}%` }} aria-hidden="true" />
+    </>}
+    <span className="us-cum-peak">{compact(max, numberLocale)} {t('tokenUnit')}</span>
+  </div>
     <div className="us-heat-months" aria-hidden="true">{monthMarks.map((label, index) => <span key={index}>{label}</span>)}</div>
+    {node}
   </div>
 }
 
@@ -262,30 +359,77 @@ function PluginList({ snapshot }: { snapshot: StatsSnapshot }): ReactNode {
 
 const PIE_COLORS = ['#1684ff', '#219653', '#9368ef', '#f59e0b', '#ef5da8', '#22b8b5', '#8b5cf6', '#10b981']
 const PIE_OTHER_COLOR = '#c3c9d1'
+/** Donut hole radius in px; must match .us-pie::after { inset } in styles.ts. */
+const PIE_HOLE_PX = 30
+
+function withAlpha(hex: string, alpha: number): string {
+  const value = hex.replace('#', '')
+  const red = Number.parseInt(value.slice(0, 2), 16)
+  const green = Number.parseInt(value.slice(2, 4), 16)
+  const blue = Number.parseInt(value.slice(4, 6), 16)
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
 
 function ModelPie({ snapshot }: { snapshot: StatsSnapshot }): ReactNode {
   const { t, numberLocale } = useLocale()
   const models = snapshot.allTime.models
   const total = snapshot.allTime.totals.tokens
+  const pieRef = useRef<HTMLDivElement | null>(null)
+  const [hover, setHover] = useState<number | null>(null)
+  const { show, hide, node } = useFloatingTip()
   const segments = useMemo(() => {
     const top = models.slice(0, 8).map((model, index) => ({ name: model.model, color: PIE_COLORS[index] ?? PIE_OTHER_COLOR, tokens: model.tokens, percent: model.percent }))
     const rest = models.slice(8).reduce((sum, model) => sum + model.tokens, 0)
     if (rest > 0) top.push({ name: t('otherModel'), color: PIE_OTHER_COLOR, tokens: rest, percent: total === 0 ? 0 : rest / total * 100 })
     return top
   }, [models, total, t])
+  /** Clockwise degree span of each segment (conic-gradient starts at 12 o'clock). */
+  const ranges = useMemo(() => {
+    let cursor = 0
+    return segments.map(segment => {
+      const from = cursor * 3.6
+      cursor += segment.percent
+      return { from, to: Math.min(cursor, 100) * 3.6 }
+    })
+  }, [segments])
   const conic = useMemo(() => {
     let cursor = 0
-    const stops = segments.map(segment => {
+    const stops = segments.map((segment, index) => {
       const from = cursor
       cursor += segment.percent
-      return `${segment.color} ${(from * 3.6).toFixed(2)}deg ${(Math.min(cursor, 100) * 3.6).toFixed(2)}deg`
+      const color = hover === null || hover === index ? segment.color : withAlpha(segment.color, 0.45)
+      return `${color} ${(from * 3.6).toFixed(2)}deg ${(Math.min(cursor, 100) * 3.6).toFixed(2)}deg`
     })
     return stops.length === 0 ? `conic-gradient(${PIE_OTHER_COLOR} 0deg 360deg)` : `conic-gradient(${stops.join(', ')})`
-  }, [segments])
+  }, [segments, hover])
+  const clearHover = (): void => { setHover(null); hide() }
+  const activate = useCallback((index: number): void => {
+    const pie = pieRef.current
+    const segment = segments[index]
+    if (pie === null || segment === undefined) return
+    setHover(index)
+    const rect = pie.getBoundingClientRect()
+    show(clampTipX(rect.left + rect.width / 2), Math.max(4, rect.top - 10), t('modelDetail', { name: segment.name, tokens: compact(segment.tokens, numberLocale), token: t('tokenUnit'), percent: segment.percent.toFixed(1) }))
+  }, [segments, show, t, numberLocale])
+  /** Map the cursor onto the conic ring: 12 o'clock start, clockwise degrees. */
+  const onMove = (event: ReactMouseEvent<HTMLDivElement>): void => {
+    const pie = pieRef.current
+    if (pie === null) return
+    const rect = pie.getBoundingClientRect()
+    const dx = event.clientX - (rect.left + rect.width / 2)
+    const dy = event.clientY - (rect.top + rect.height / 2)
+    const radius = Math.hypot(dx, dy)
+    if (radius < PIE_HOLE_PX || radius > rect.width / 2) { clearHover(); return }
+    const deg = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360
+    const hit = ranges.findIndex(range => deg >= range.from && deg < range.to)
+    if (hit === -1) { clearHover(); return }
+    if (hit !== hover) activate(hit)
+  }
   return <section className="us-panel"><div className="us-panel-head"><span className="us-panel-title">{t('modelShareTitle')}</span><span className="us-panel-note">{t('modelShareNote')}</span></div>
-    <div className="us-pie-layout"><div className="us-pie" style={{ background: conic }}><div className="us-pie-center">{compact(total, numberLocale)}<small>{t('tokenUnit')}</small></div></div>
-      <div className="us-pie-legend">{segments.map(segment => <div className="us-pie-row" key={segment.name}><span className="us-pie-dot" style={{ background: segment.color }} /><span className="us-pie-name" title={segment.name}>{segment.name}</span><span className="us-pie-tokens">{compact(segment.tokens, numberLocale)}</span><span className="us-pie-percent">{segment.percent.toFixed(segment.percent < 10 ? 1 : 0)}%</span></div>)}</div>
+    <div className="us-pie-layout"><div className="us-pie" ref={pieRef} style={{ background: conic }} onMouseMove={onMove} onMouseLeave={clearHover}><div className="us-pie-center">{compact(total, numberLocale)}<small>{t('tokenUnit')}</small></div></div>
+      <div className="us-pie-legend">{segments.map((segment, index) => <div className="us-pie-row" key={segment.name} data-active={hover === index || undefined} onMouseEnter={() => activate(index)} onMouseLeave={clearHover}><span className="us-pie-dot" style={{ background: segment.color }} /><span className="us-pie-name" title={segment.name}>{segment.name}</span><span className="us-pie-tokens">{compact(segment.tokens, numberLocale)}</span><span className="us-pie-percent">{segment.percent.toFixed(segment.percent < 10 ? 1 : 0)}%</span></div>)}</div>
     </div>
+    {node}
   </section>
 }
 
@@ -307,7 +451,7 @@ function Dashboard({ hide }: { hide: () => void }): ReactNode {
   }, [query])
   useEffect(() => { const abort = new AbortController(); refresh(abort.signal); return () => { abort.abort() } }, [refresh])
   useEffect(() => { const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') hide() }; window.addEventListener('keydown', onKey); return () => { window.removeEventListener('keydown', onKey) } }, [hide])
-  return <div data-usage-stats className="us-shell" role="dialog" aria-modal="true" aria-label={t('title')}>
+  return <div data-usage-stats className="us-shell" role="region" aria-label={t('title')}>
     <header className="us-top"><div className="us-heading"><div className="us-title">{t('title')}</div><span className="us-tab">{t('appUsage')}</span></div><button className="us-back" onClick={hide}><Icon name="back" size={17} />{t('back')}</button></header>
     <main className="us-scroll"><div className="us-content">
       {error ? <div className="us-state"><div><p>{t('loadError')}</p><small>{error}</small></div></div> : snapshot === null ? <div className="us-state"><div><div className="us-spinner" />{t('loading')}</div></div> : <>
@@ -320,9 +464,107 @@ function Dashboard({ hide }: { hide: () => void }): ReactNode {
   </div>
 }
 
-function Overlay({ useVisibility, hide }: OverlayProps): ReactNode {
-  const open = useVisibility(value => value)
-  return open ? <Dashboard hide={hide} /> : null
+/**
+ * React tree for the center-column view container. The Dashboard mounts only
+ * while the panel is open, so each open refetches a fresh snapshot.
+ */
+function PanelView({ controller }: { controller: PanelController }): ReactNode {
+  const open = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  return open ? <Dashboard hide={controller.hide} /> : null
+}
+
+/**
+ * Mount the dashboard into the center column with the task-board /
+ * cron-explorer single-occupant protocol: the view is an extra trailing child
+ * of the conversation column, visibility is an attribute on <html>, and the
+ * conversation subtree stays mounted underneath (hidden by CSS while active).
+ * @param controller - the panel state driving the view.
+ * @returns disposer unmounting the tree and restoring the column.
+ */
+function mountPanel(controller: PanelController): () => void {
+  let root: Root | undefined
+  let container: HTMLDivElement | undefined
+
+  const ensure = (): void => {
+    if (container !== undefined) {
+      if (container.isConnected) return
+      root?.unmount()
+      root = undefined
+      container.remove()
+      container = undefined
+    }
+    const column = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
+    if (column === null) return
+    container = document.createElement('div')
+    container.dataset.dshUsageStatsView = ''
+    container.dataset.dshPlugin = 'usage-stats'
+    column.appendChild(container)
+    root = createRoot(container)
+    root.render(<PanelView controller={controller} />)
+  }
+
+  // The frame mounts after boot settlement; watch for the column's arrival.
+  const waitObserver = new MutationObserver(() => { ensure() })
+  waitObserver.observe(document.body, { childList: true, subtree: true })
+
+  // While we evict siblings, their activation events must not close us back.
+  let evicting = false
+
+  const applyActive = (): void => {
+    if (controller.getSnapshot()) {
+      // Single-occupant center column: evict the sibling panels. The
+      // installed task-board closes itself on an 'ssh' activation event (its
+      // established eviction protocol), and both activation attributes are
+      // attribute-scoped in CSS, so the direct removal is defensive.
+      evicting = true
+      try {
+        document.dispatchEvent(new CustomEvent(ACTIVATE_EVENT, { detail: 'ssh' }))
+        document.dispatchEvent(new CustomEvent(ACTIVATE_EVENT, { detail: PANEL_NAME }))
+      } finally {
+        evicting = false
+      }
+      for (const attr of SIBLING_ATTRS) document.documentElement.removeAttribute(attr)
+      document.documentElement.setAttribute(ACTIVE_ATTR, '')
+    } else {
+      document.documentElement.removeAttribute(ACTIVE_ATTR)
+    }
+  }
+
+  const onOtherActivate = (event: Event): void => {
+    if (evicting) return
+    const detail = (event as CustomEvent).detail
+    if ((SIBLING_DETAILS as readonly string[]).includes(detail) && controller.getSnapshot()) {
+      controller.hide()
+    }
+  }
+
+  // Jump out on sidebar context clicks: clicking a session/workspace row
+  // hands the center column back to the conversation (capture phase, so the
+  // panel closes before the shell processes the click).
+  const onClickSidebarRow = (event: MouseEvent): void => {
+    if (!controller.getSnapshot()) return
+    const target = event.target as HTMLElement | null
+    if (target === null) return
+    if (target.closest(SIDEBAR_ROW_SELECTOR) !== null) controller.hide()
+  }
+
+  document.addEventListener('click', onClickSidebarRow, true)
+  document.addEventListener(ACTIVATE_EVENT, onOtherActivate)
+  const unsubscribe = controller.subscribe(applyActive)
+  applyActive()
+  ensure()
+
+  return () => {
+    document.removeEventListener('click', onClickSidebarRow, true)
+    document.removeEventListener(ACTIVATE_EVENT, onOtherActivate)
+    waitObserver.disconnect()
+    unsubscribe()
+    document.documentElement.removeAttribute(ACTIVE_ATTR)
+    root?.unmount()
+    root = undefined
+    container?.remove()
+    container = undefined
+  }
 }
 
 export function apply(ctx: ClientContext & { locale: LocaleRuntime }): void {
@@ -333,8 +575,15 @@ export function apply(ctx: ClientContext & { locale: LocaleRuntime }): void {
   style.textContent = styles
   document.head.appendChild(style)
   ctx.effect(() => () => { style.remove() }, 'usage-stats: styles')
-  const visibility = new VisibilityController()
-  const injected = () => ({ hooks: { visibility }, show: visibility.show, hide: visibility.hide })
+  const controller = new PanelController()
+  const injected = () => ({ hooks: { controller }, show: controller.show, hide: controller.hide, toggle: controller.toggle })
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({ name: 'sidebar.footer.action', id: 'usage-stats', order: 20, inject: injected }, FooterAction))
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: 'usage-stats', order: 20, inject: injected }, Overlay))
+  try {
+    // Failure policy mirrors the reference plugins: DOM mounting problems are
+    // logged, never thrown — a throwing client apply fails the whole web boot.
+    const disposePanel = mountPanel(controller)
+    ctx.effect(() => disposePanel, 'usage-stats: center-column panel')
+  } catch (error) {
+    console.warn('[dsh-usage-stats] center-column panel mount failed:', error)
+  }
 }
