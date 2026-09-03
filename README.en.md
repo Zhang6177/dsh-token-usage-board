@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%7C%7C%20%3E%3D24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/npm/l/dsh-usage-stats?style=flat-square)](./LICENSE)
 
-dsh-usage-stats is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents an activity dashboard: total / peak tokens, longest chat duration, active-day streaks, daily / weekly / monthly / cumulative token activity views, activity insights (fast mode, reasoning effort, skill usage), most-used plugins, and per-model token share.
+dsh-usage-stats is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents an activity dashboard: total / peak tokens, longest chat duration, active-day streaks, daily / weekly / monthly / cumulative token activity views, activity insights (fast mode, reasoning effort, skill usage), the most-used skills (Top 5), and per-model token share.
 
 The plugin integrates through Harness extension APIs without modifying the Web UI or official npm packages. Statistics remain on the local machine.
 
@@ -26,6 +26,15 @@ Update or remove the plugin:
 dsh plugin --profile web update dsh-usage-stats
 dsh plugin --profile web remove dsh-usage-stats
 ```
+
+Other install options:
+
+```sh
+# One-line install script (macOS / Linux / Windows Git Bash)
+curl -fsSL https://raw.githubusercontent.com/lanlandeli/dsh-usage-stats/main/scripts/install.sh | bash
+```
+
+Or in the Web UI: **Settings → Plugin Market** (the `dshmarket` plugin) → search `dsh-usage-stats` and install with one click.
 
 ## Demo
 
@@ -54,7 +63,7 @@ dsh plugin --profile web remove dsh-usage-stats
 | **Core stats** | Total tokens, peak single-day tokens, longest chat duration, current / longest streak |
 | **Token activity** | 53-week activity view with daily heatmap / weekly / monthly / cumulative toggle |
 | **Activity insights** | Fast-mode share, top reasoning effort, skills explored, skill invocations, total chats |
-| **Most used plugins** | Top-5 most-run skills / plugin tools by run count |
+| **Most used skills** | Top-5 skills ranked by run count |
 | **Model share** | Per-model token share ring chart with legend |
 | **Data export** | Export CSV or JSON for archival or further analysis |
 | **Chinese and English UI** | Follow the Harness language setting automatically |
@@ -79,7 +88,6 @@ config:
   cacheWriteDelayMs: 1000
   apiPath: /usage-stats/v1
   fastModelPattern: flash|turbo|lite|nano|haiku|fast|mini
-  pluginToolExclude: [bash, read, write, ...]
 ```
 
 | Option | Description | Default |
@@ -89,7 +97,19 @@ config:
 | `cachePath` | Custom index location | Harness data directory |
 | `apiPath` | Statistics API path | `/usage-stats/v1` |
 | `fastModelPattern` | Case-insensitive regex of model ids that count as "fast" models, used for the fast-mode insight | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
-| `pluginToolExclude` | Tool names excluded from the Most Used Plugins ranking (built-in tools by default) | Built-in tool set |
+
+## Data API
+
+The plugin exposes a same-origin, read-only HTTP API (default base path `/usage-stats/v1`, configurable via `apiPath`):
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /snapshot` | Aggregated dashboard data (`from` / `to` / `timeZone` / `scope` / `workspace` query parameters) |
+| `GET /calls` | Paginated call-level records with model / provider / token-threshold filters |
+| `GET /export.csv` | Download the snapshot for the query range as CSV |
+| `GET /export.json` | Download the snapshot for the query range as JSON |
+
+Parameters, response shapes, and the error contract are documented in the [API reference](./docs/API.md). The `v1` path is stable for additions; breaking changes move to a new version path.
 
 ## Privacy and security
 
@@ -99,7 +119,7 @@ config:
 
 ## Compatibility
 
-The verified baseline is DeepSeek Harness `0.1.0-rc.6` with Node.js `22.19+` or `24+`. The plugin supports the official Web UI and desktop wrappers that load it.
+Verified on DeepSeek Harness `0.1.0-rc.6` and `0.1.1-rc.2` with Node.js `22.19+` or `24+`. The plugin supports the official Web UI and desktop wrappers that load it.
 
 Harness is evolving rapidly. Only environments tested by this project are declared as verified. See [Compatibility](./docs/COMPATIBILITY.md) for details.
 

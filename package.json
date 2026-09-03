@@ -1,6 +1,6 @@
 {
   "name": "dsh-usage-stats",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Lightweight usage analytics for DeepSeek Harness — activity dashboard, token heatmaps, activity insights, model breakdowns, and exports.",
   "author": "lanlandeli",
   "repository": {
@@ -32,9 +32,12 @@
     "PRIVACY.md",
     "SECURITY.md",
     "docs/COMPATIBILITY.md",
+    "docs/API.md",
     "assets/*.png",
     "assets/*.gif",
-    "LICENSE"
+    "LICENSE",
+    "scripts/install.sh",
+    "scripts/install.ps1"
   ],
   "scripts": {
     "build": "tsdown",

@@ -3,6 +3,47 @@
 All notable changes are documented here. This project follows Semantic
 Versioning while DeepSeek Harness remains in developer preview.
 
+## [0.3.0] - 2026-09-03
+
+Open-source release: the activity-dashboard line (0.2.0–0.2.3) is published
+for the first time, packaged for one-click installs, and its public data API
+is documented.
+
+### Added
+
+- One-click install scripts shipped with the npm package:
+  `scripts/install.sh` (macOS / Linux / Windows Git Bash) and
+  `scripts/install.ps1` (PowerShell 5.1+). They wrap the official
+  `dsh plugin --profile <name> add dsh-usage-stats[@version]` command,
+  resolve `latest` to the current npm version when online, pre-write the
+  idempotent `minimumReleaseAgeExclude` entry into the profile's
+  `pnpm-workspace.yaml` (pnpm 11 release-age grace period), verify the
+  bundle registration in `dsh.profile.bundles`, and offer an opt-in
+  `--restart` / `-Restart` (pm2). `--dry-run` / `-DryRun` print the plan
+  without touching anything.
+- `docs/API.md`: reference for the read-only, same-origin data API
+  (`/snapshot`, `/calls`, `/export.csv`, `/export.json` under the
+  configurable `apiPath`, default `/usage-stats/v1`) — query parameters and
+  limits, response shapes, error contract, examples, and the v1 stability
+  commitment (additive changes only; breaking changes move to a new version
+  path).
+- README (zh + en) gain the one-line install script and the Plugin Market
+  (`dshmarket`) install path, plus a short "Data API" section linking to the
+  new reference.
+
+### Changed
+
+- Verified compatibility is extended to DeepSeek Harness `0.1.1-rc.2` (on
+  top of `0.1.0-rc.6`) and Node.js `22.23.2` (on top of `24.19.0`), matching
+  the environments this release was developed and exercised on.
+- The English README is brought in sync with 0.2.1–0.2.3: the Top-5 ranking
+  is described as skills-only ("Most used skills"), the removed
+  `pluginToolExclude` option is dropped from the configuration section, and
+  the panel is described as the center-column dashboard.
+- `check-package` now requires the two install scripts in the published
+  package and whitelists exactly those under `scripts/` (everything else
+  still fails the pack check).
+
 ## [0.2.3] - 2026-09-03
 
 ### Changed

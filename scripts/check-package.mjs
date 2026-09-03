@@ -27,12 +27,16 @@ const required = [
   'PRIVACY.md', 'SECURITY.md', 'cordis.patch.yml', 'lib/index.js',
   'lib/index.d.ts', 'lib/client.js', 'assets/dashboard-light-full.png',
   'assets/dashboard-dark-full.png',
-  'assets/usage-demo.gif',
+  'assets/usage-demo.gif', 'scripts/install.sh', 'scripts/install.ps1',
 ]
 for (const file of required) {
   if (!files.has(file)) throw new Error(`Published package is missing ${file}`)
 }
-const forbidden = [...files].filter(file => /^(src|tests|scripts|node_modules)\//.test(file)
+// Only the one-click install scripts may ship under scripts/; everything else
+// (tests, dev tooling) stays out of the published package.
+const allowedScripts = new Set(['scripts/install.sh', 'scripts/install.ps1'])
+const forbidden = [...files].filter(file =>
+  (!allowedScripts.has(file) && /^(src|tests|scripts|node_modules)\//.test(file))
   || /^README\.draft\.md$/i.test(file)
   || /\.(?:tgz|log)$/.test(file))
 if (forbidden.length > 0) throw new Error(`Unexpected published files: ${forbidden.join(', ')}`)

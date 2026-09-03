@@ -76,7 +76,8 @@ try {
   const installedManifest = JSON.parse(await readFile(join(dirname(profilePath), 'node_modules', 'dsh-usage-stats', 'package.json'), 'utf8'))
   const bundledOfficialPackages = Object.keys(installedManifest.dependencies ?? {}).filter(name => name.startsWith('@deepseek-ai/'))
   if (bundledOfficialPackages.length > 0) throw new Error(`Installed plugin has regular official dependencies: ${bundledOfficialPackages.join(', ')}`)
-  if (installedManifest.version !== '0.2.0') throw new Error(`Unexpected installed plugin version: ${installedManifest.version}`)
+  const sourceManifest = JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8'))
+  if (installedManifest.version !== sourceManifest.version) throw new Error(`Unexpected installed plugin version: ${installedManifest.version} (expected ${sourceManifest.version})`)
 
   const dump = await runNode(dshBin, ['--profile', 'web', '--dump-config'])
   if (!dump.stdout.includes('dsh-usage-stats')) throw new Error('Composed config does not contain the plugin')

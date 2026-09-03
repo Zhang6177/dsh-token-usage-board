@@ -27,6 +27,15 @@ dsh plugin --profile web update dsh-usage-stats
 dsh plugin --profile web remove dsh-usage-stats
 ```
 
+其他安装方式：
+
+```sh
+# 一行安装脚本（macOS / Linux / Windows Git Bash）
+curl -fsSL https://raw.githubusercontent.com/lanlandeli/dsh-usage-stats/main/scripts/install.sh | bash
+```
+
+或在 Web 界面中：**设置 → 插件市场**（`dshmarket` 插件）→ 搜索 `dsh-usage-stats` 一键安装。
+
 ## 🎬 效果演示
 
 ![使用效果演示](./assets/usage-demo.gif)
@@ -89,6 +98,19 @@ config:
 | `apiPath` | 统计接口路径 | `/usage-stats/v1` |
 | `fastModelPattern` | 判定"快速模型"的模型名正则（不区分大小写），用于活动洞察的快速模式占比 | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
 
+## 📡 数据接口
+
+插件在 Harness Web 同源地址上暴露一组**只读** HTTP 接口（默认基路径 `/usage-stats/v1`，可通过 `apiPath` 配置），供其他插件或外部工具消费：
+
+| 端点 | 说明 |
+| --- | --- |
+| `GET /snapshot` | 聚合看板数据（查询参数：`from`、`to`、`timeZone`、`scope`、`workspace`） |
+| `GET /calls` | 调用级明细分页（支持模型 / 提供方 / Token 阈值过滤） |
+| `GET /export.csv` | 下载当前查询区间的 CSV |
+| `GET /export.json` | 下载当前查询区间的 JSON |
+
+参数、响应结构与错误约定见 [接口文档](./docs/API.md)。`v1` 路径向后兼容（只增不改）；破坏性变更将启用新版本路径。
+
 ## 🔒 隐私与安全
 
 - 统计索引保存在 `DSH_HOME/usage-stats`，内容包括会话标识、时间、工作目录、模型名称和 Token 数量。
@@ -97,7 +119,7 @@ config:
 
 ## 🧩 兼容性
 
-目前已在 DeepSeek Harness `0.1.0-rc.6`、Node.js `22.19+` 和 `24+` 上测试，可用于官方 Web UI，以及加载该 Web UI 的桌面封装。
+目前已在 DeepSeek Harness `0.1.0-rc.6`、`0.1.1-rc.2`、Node.js `22.19+` 和 `24+` 上测试，可用于官方 Web UI，以及加载该 Web UI 的桌面封装。
 
 Harness 仍在持续更新。本文仅声明经过实际测试的运行环境；其他版本可能可以正常运行，但不在当前验证范围内。详细信息见 [兼容性说明](./docs/COMPATIBILITY.md)。
 
