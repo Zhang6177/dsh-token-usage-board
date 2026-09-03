@@ -6,7 +6,7 @@ export type Language = 'zh' | 'en'
 const zh = {
   nav: '使用统计',
   title: '使用统计',
-  appUsage: '应用用量',
+  appUsage: 'token用量',
   back: '返回对话',
   noData: '暂无数据',
   loadError: '统计数据暂时无法读取',
@@ -68,7 +68,7 @@ type Dictionary = Record<keyof typeof zh, string>
 const en: Dictionary = {
   nav: 'Usage Stats',
   title: 'Usage Stats',
-  appUsage: 'App Usage',
+  appUsage: 'Token Usage',
   back: 'Back to chat',
   noData: 'No data',
   loadError: 'Unable to load usage stats',

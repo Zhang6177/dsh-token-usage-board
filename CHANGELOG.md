@@ -3,6 +3,13 @@
 All notable changes are documented here. This project follows Semantic
 Versioning while DeepSeek Harness remains in developer preview.
 
+## [0.2.3] - 2026-09-03
+
+### Changed
+
+- The panel header badge copy is now `token用量` (was `应用用量`; English:
+  `Token Usage`, was `App Usage`).
+
 ## [0.2.2] - 2026-09-03
 
 ### Changed
