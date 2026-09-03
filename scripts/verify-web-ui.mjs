@@ -92,7 +92,7 @@ const report = await evaluate(`(() => {
     monthLabels: document.querySelectorAll('.us-heat-months span').length,
     modeButtons: document.querySelectorAll('.us-segment button').length,
     insightsRows: document.querySelectorAll('.us-duo-row').length,
-    pluginRows: document.querySelectorAll('.us-plugin-row').length,
+    skillRows: document.querySelectorAll('.us-skill-row').length,
     pieRows: document.querySelectorAll('.us-pie-row').length,
     fontFamily: getComputedStyle(shell).fontFamily,
   }
@@ -101,7 +101,7 @@ const report = await evaluate(`(() => {
 if (
   report.statCells !== 5 || report.heatCells !== 371 || report.monthLabels !== 53 ||
   report.modeButtons !== 4 || report.insightsRows !== 5 ||
-  report.pluginRows < 1 || report.pieRows < 1
+  report.skillRows < 1 || report.pieRows < 1
 ) {
   throw new Error(`UI contract failed: ${JSON.stringify(report)}`)
 }
@@ -201,7 +201,7 @@ await clickMode('每日', 'Daily')
   await addFrame(500)
   const duoTop = await evaluate(`Math.max(0, document.querySelector('.us-duo').offsetTop - 18)`)
   await scrollTo(duoTop, 6)
-await hover('.us-plugin-row')
+await hover('.us-skill-row')
   await addFrame(850)
   await scrollTo(0, 8)
   await addFrame(1100)

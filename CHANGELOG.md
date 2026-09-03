@@ -3,6 +3,23 @@
 All notable changes are documented here. This project follows Semantic
 Versioning while DeepSeek Harness remains in developer preview.
 
+## [0.2.2] - 2026-09-03
+
+### Changed
+
+- The "Most Used Plugins" panel is now "Most Used Skills"
+  (`最常用的技能`): the ranking only counts `skill` tool invocations. Regular
+  tool calls (including non-built-in tools) no longer appear in the Top 5;
+  they are still recorded in the local index but no longer affect the
+  ranking. The snapshot field `topPlugins` is renamed `topSkills` and the
+  `PluginUsage` type is renamed `SkillUsage`.
+
+### Removed
+
+- The `pluginToolExclude` config option (and the
+  `DEFAULT_PLUGIN_TOOL_EXCLUDE` export). It only filtered tool names out of
+  the plugin ranking, which no longer exists.
+
 ## [0.2.1] - 2026-09-03
 
 ### Changed

@@ -349,11 +349,11 @@ function Insights({ snapshot }: { snapshot: StatsSnapshot }): ReactNode {
   return <section className="us-panel"><div className="us-panel-head"><span className="us-panel-title">{t('insightsTitle')}</span></div>{rows.map(row => <div className="us-duo-row" key={row.label}><span className="us-duo-label" title={row.sub}>{row.label}</span><span className="us-duo-value">{row.value}</span></div>)}</section>
 }
 
-function PluginList({ snapshot }: { snapshot: StatsSnapshot }): ReactNode {
+function SkillList({ snapshot }: { snapshot: StatsSnapshot }): ReactNode {
   const { t, numberLocale } = useLocale()
-  return <section className="us-panel"><div className="us-panel-head"><span className="us-panel-title">{t('pluginsTitle')}</span></div>
-    {snapshot.topPlugins.length === 0 ? <div className="us-duo-row"><span className="us-duo-label">{t('noData')}</span></div>
-      : snapshot.topPlugins.map(plugin => <div className="us-plugin-row" key={plugin.name}><span className="us-plugin-mark"><Icon name="spark" size={13} /></span><span className="us-plugin-name" title={plugin.name}>{plugin.name}</span><span className="us-plugin-count">{new Intl.NumberFormat(numberLocale).format(plugin.runs)} {t('runsSuffix')}</span></div>)}
+  return <section className="us-panel"><div className="us-panel-head"><span className="us-panel-title">{t('skillsTitle')}</span></div>
+    {snapshot.topSkills.length === 0 ? <div className="us-duo-row"><span className="us-duo-label">{t('noData')}</span></div>
+      : snapshot.topSkills.map(skill => <div className="us-skill-row" key={skill.name}><span className="us-skill-mark"><Icon name="spark" size={13} /></span><span className="us-skill-name" title={skill.name}>{skill.name}</span><span className="us-skill-count">{new Intl.NumberFormat(numberLocale).format(skill.runs)} {t('runsSuffix')}</span></div>)}
   </section>
 }
 
@@ -457,7 +457,7 @@ function Dashboard({ hide }: { hide: () => void }): ReactNode {
       {error ? <div className="us-state"><div><p>{t('loadError')}</p><small>{error}</small></div></div> : snapshot === null ? <div className="us-state"><div><div className="us-spinner" />{t('loading')}</div></div> : <>
         <StatStrip snapshot={snapshot} />
         <TokenActivity days={snapshot.days} />
-        <div className="us-duo"><Insights snapshot={snapshot} /><PluginList snapshot={snapshot} /></div>
+        <div className="us-duo"><Insights snapshot={snapshot} /><SkillList snapshot={snapshot} /></div>
         <ModelPie snapshot={snapshot} />
       </>}
     </div></main>

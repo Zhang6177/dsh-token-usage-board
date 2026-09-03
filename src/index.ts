@@ -13,14 +13,6 @@ import type { AggregateOptions, CallRecord, CallsFilter, CallsPage, IndexCache, 
 export const name = 'usage-stats'
 export const inject = ['sessionQuery', 'webServer']
 
-/** Core DSH tool names that are never "plugins" for the usage ranking. */
-export const DEFAULT_PLUGIN_TOOL_EXCLUDE: readonly string[] = [
-  'ask_user_question', 'bash', 'create_goal', 'edit', 'exit_plan_mode', 'get_goal',
-  'glob', 'grep', 'interrupt_agent', 'job_kill', 'job_list', 'job_output',
-  'list_agents', 'read', 'read_image', 'ralph', 'run_code', 'send_message', 'skill',
-  'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'web_search', 'workflow', 'write',
-]
-
 const DEFAULT_FAST_MODEL_PATTERN = 'flash|turbo|lite|nano|haiku|fast|mini'
 
 export interface Config {
@@ -30,8 +22,6 @@ export interface Config {
   apiPath?: string
   /** Case-insensitive ids of fast models, e.g. `flash|turbo`. */
   fastModelPattern?: RegExp
-  /** Tool names excluded from the "most used plugins" ranking. */
-  pluginToolExclude?: string[]
 }
 
 export const Config: z<Config> = z.object({
@@ -40,7 +30,6 @@ export const Config: z<Config> = z.object({
   cachePath: z.string().description('Optional index path; defaults below DSH_HOME.'),
   apiPath: z.string().default('/usage-stats/v1').description('Same-origin read-only API prefix.'),
   fastModelPattern: z.regExp('i').default(new RegExp(DEFAULT_FAST_MODEL_PATTERN, 'i')).description('Case-insensitive regex matching fast model ids (e.g. flash variants).'),
-  pluginToolExclude: z.array(z.string()).default([...DEFAULT_PLUGIN_TOOL_EXCLUDE]).description('Tool names excluded from the plugin ranking (built-in tools by default).'),
 })
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -121,11 +110,10 @@ class UsageIndex {
 
   private readonly aggregateOptions: AggregateOptions
 
-  constructor(private readonly ctx: Context, private readonly config: Required<Pick<Config, 'indexConcurrency' | 'cacheWriteDelayMs' | 'apiPath' | 'fastModelPattern' | 'pluginToolExclude'>> & Config) {
+  constructor(private readonly ctx: Context, private readonly config: Required<Pick<Config, 'indexConcurrency' | 'cacheWriteDelayMs' | 'apiPath' | 'fastModelPattern'>> & Config) {
     this.cachePath = config.cachePath ?? dshHomePath('usage-stats', 'index-v1.json')
     this.aggregateOptions = {
       fastModelPattern: config.fastModelPattern,
-      pluginToolExclude: new Set(config.pluginToolExclude.map(name => name.toLowerCase())),
     }
   }
 
@@ -315,7 +303,6 @@ export function apply(ctx: Context, config: Config = {}): void {
     cacheWriteDelayMs: config.cacheWriteDelayMs ?? 1000,
     apiPath: (config.apiPath ?? '/usage-stats/v1').replace(/\/$/, ''),
     fastModelPattern: compileFastPattern(config.fastModelPattern),
-    pluginToolExclude: config.pluginToolExclude ?? [...DEFAULT_PLUGIN_TOOL_EXCLUDE],
   }
   new UsageIndex(ctx, normalized).start()
 }

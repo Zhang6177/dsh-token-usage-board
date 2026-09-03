@@ -133,11 +133,11 @@ body[data-ds-dark-theme] .us-cell[data-level="5"] { background: #67b7ff; }
 .us-duo-label { color: var(--us-text); font-size: 13.5px; }
 .us-duo-value { font-weight: 640; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .us-duo-sub { margin-top: 6px; color: var(--us-muted); font-size: 12px; }
-.us-plugin-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--us-border) 55%, transparent); }
-.us-plugin-row:last-child { border-bottom: 0; }
-.us-plugin-mark { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: var(--us-accent); background: color-mix(in srgb, var(--us-accent) 12%, transparent); font-size: 12px; font-weight: 700; }
-.us-plugin-name { min-width: 0; overflow: hidden; font-weight: 580; text-overflow: ellipsis; white-space: nowrap; }
-.us-plugin-count { margin-left: auto; flex: none; color: var(--us-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.us-skill-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--us-border) 55%, transparent); }
+.us-skill-row:last-child { border-bottom: 0; }
+.us-skill-mark { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; color: var(--us-accent); background: color-mix(in srgb, var(--us-accent) 12%, transparent); font-size: 12px; font-weight: 700; }
+.us-skill-name { min-width: 0; overflow: hidden; font-weight: 580; text-overflow: ellipsis; white-space: nowrap; }
+.us-skill-count { margin-left: auto; flex: none; color: var(--us-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .us-pie-layout { display: grid; grid-template-columns: 220px 1fr; align-items: center; gap: 28px; }
 .us-pie { width: 190px; aspect-ratio: 1; margin: auto; border-radius: 50%; display: grid; place-items: center; position: relative; }
 .us-pie::after { content: ''; position: absolute; inset: 30px; border-radius: 50%; background: var(--us-surface); }

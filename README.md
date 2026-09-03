@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%7C%7C%20%3E%3D24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/npm/l/dsh-usage-stats?style=flat-square)](./LICENSE)
 
-dsh-usage-stats 是面向 DeepSeek Harness Web UI 的轻量使用统计插件，提供活动看板：累计 / 峰值 Token、最长聊天时长、连续活跃天数、每日 / 每周 / 每月 / 累计 Token 活动热力图、活动洞察（快速模式、推理强度、技能使用）、最常用的插件与模型 Token 占比。
+dsh-usage-stats 是面向 DeepSeek Harness Web UI 的轻量使用统计插件，提供活动看板：累计 / 峰值 Token、最长聊天时长、连续活跃天数、每日 / 每周 / 每月 / 累计 Token 活动热力图、活动洞察（快速模式、推理强度、技能使用）、最常用的技能与模型 Token 占比。
 
 插件通过 Harness 提供的扩展接口集成，不修改 Web UI 或官方 npm 包。统计数据保存在本机。
 
@@ -54,7 +54,7 @@ dsh plugin --profile web remove dsh-usage-stats
 | 📊 **核心指标** | 累计 Token、峰值 Token（单日最高）、最长聊天时长、当前 / 最长连续天数 |
 | 🔥 **Token 活动** | 近 53 周活动视图，支持每日热力图 / 每周 / 每月 / 累计曲线四种切换 |
 | 💡 **活动洞察** | 快速模式占比、最常用推理强度、已探索技能数、技能使用总数、聊天总数 |
-| 🧩 **常用插件** | 按运行次数排序的最常用技能 / 插件工具 Top 5 |
+| 🧩 **常用技能** | 按运行次数排序的最常用技能 Top 5 |
 | 🥧 **模型占比** | 按模型统计 Token 占比的环形图与图例 |
 | 💾 **数据导出** | 支持导出 CSV 或 JSON，用于归档或进一步分析 |
 | 🌐 **中英文界面** | 自动跟随 Harness 的语言设置切换中文或英文 |
@@ -79,7 +79,6 @@ config:
   cacheWriteDelayMs: 1000
   apiPath: /usage-stats/v1
   fastModelPattern: flash|turbo|lite|nano|haiku|fast|mini
-  pluginToolExclude: [bash, read, write, ...]
 ```
 
 | 配置项 | 说明 | 默认值 |
@@ -89,7 +88,6 @@ config:
 | `cachePath` | 自定义统计缓存位置 | Harness 数据目录 |
 | `apiPath` | 统计接口路径 | `/usage-stats/v1` |
 | `fastModelPattern` | 判定"快速模型"的模型名正则（不区分大小写），用于活动洞察的快速模式占比 | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
-| `pluginToolExclude` | 在"最常用的插件"排名中排除的工具名（内置工具默认排除） | 内置工具集合 |
 
 ## 🔒 隐私与安全
 

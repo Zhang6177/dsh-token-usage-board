@@ -33,7 +33,7 @@ export interface SessionSummary {
   /** Timestamp of the latest indexed event; the chat-duration upper bound. */
   lastAt?: number
   activities: ActivityRecord[]
-  /** Non-skill tool-call counts by tool name, for the plugin ranking. */
+  /** Non-skill tool-call counts by tool name (recorded for reference; the ranking is skills-only). */
   tools: Record<string, number>
   /** Skill-invocation counts by skill name (from `skill` tool calls). */
   skills: Record<string, number>
@@ -119,8 +119,8 @@ export interface EffortUsage {
   percent: number
 }
 
-/** One plugin/skill row of the "most used plugins" ranking. */
-export interface PluginUsage {
+/** One skill row of the "most used skills" ranking. */
+export interface SkillUsage {
   name: string
   runs: number
 }
@@ -129,8 +129,6 @@ export interface PluginUsage {
 export interface AggregateOptions {
   /** Case-insensitive pattern matching "fast" model ids (e.g. flash/turbo variants). */
   fastModelPattern?: RegExp
-  /** Tool names excluded from the plugin ranking (built-in tools, case-insensitive). */
-  pluginToolExclude?: ReadonlySet<string>
 }
 
 export interface StatsSnapshot {
@@ -176,7 +174,7 @@ export interface StatsSnapshot {
   days: DayStats[]
   models: ModelStats[]
   workspaces: { path: string; sessions: number }[]
-  /** Top plugin/skill rankings (skills plus non-built-in tool calls), newest-usage first. */
-  topPlugins: PluginUsage[]
+  /** Top skills ranking (`skill` tool invocations by run count). */
+  topSkills: SkillUsage[]
   index: { sessions: number; lastUpdatedAt: number | null }
 }

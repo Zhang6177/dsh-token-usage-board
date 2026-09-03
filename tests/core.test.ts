@@ -353,7 +353,7 @@ describe('activity dashboard metrics', () => {
     expect(result.allTime.totals.skillInvocations).toBe(2)
     expect(result.allTime.totals.uniqueSkills).toBe(1)
     expect(result.allTime.totals.efforts).toEqual([{ id: 'max', calls: 1, percent: 12.5 }])
-    expect(result.topPlugins).toEqual([{ name: 'paper-plan', runs: 2 }])
+    expect(result.topSkills).toEqual([{ name: 'paper-plan', runs: 2 }])
   })
 
   it('anchors the current streak at yesterday when today is still empty', () => {
@@ -368,16 +368,14 @@ describe('activity dashboard metrics', () => {
     expect(result.allTime.totals.currentStreak).toBe(3)
   })
 
-  it('excludes configured built-in tools from the plugin ranking', () => {
+  it('ranks skills only, ignoring non-skill tool calls', () => {
     const summary = summarizeSession(header, [
       toolCall(0, '2026-08-01T01:00:00Z', 'skill', '{"name":"arxiv"}'),
       toolCall(1, '2026-08-01T01:00:01Z', 'bash'),
       toolCall(2, '2026-08-01T01:00:02Z', 'myplugin'),
     ])
-    const ranked = aggregateStats([summary], { from: '2026-08-01', to: '2026-08-01', timeZone: 'UTC', scope: 'all' }, { pluginToolExclude: new Set(['bash']) })
-    expect(ranked.topPlugins).toEqual([
-      { name: 'arxiv', runs: 1 },
-      { name: 'myplugin', runs: 1 },
-    ])
+    const ranked = aggregateStats([summary], { from: '2026-08-01', to: '2026-08-01', timeZone: 'UTC', scope: 'all' })
+    expect(ranked.topSkills).toEqual([{ name: 'arxiv', runs: 1 }])
+    expect(summary.tools).toEqual({ bash: 1, myplugin: 1 })
   })
 })

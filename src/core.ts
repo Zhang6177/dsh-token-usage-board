@@ -8,8 +8,8 @@ import type {
   DayStats,
   EffortUsage,
   ModelStats,
-  PluginUsage,
   SessionSummary,
+  SkillUsage,
   StatsQuery,
   StatsSnapshot,
   TokenBreakdown,
@@ -255,7 +255,7 @@ export function aggregateStats(sessions: Iterable<SessionSummary>, query: StatsQ
   const allTimeActiveDates = new Set<string>()
   const allTimeDailyTokens = new Map<string, number>()
   const allTimeEfforts = new Map<string, number>()
-  const pluginRuns = new Map<string, number>()
+  const skillRuns = new Map<string, number>()
   let allTimeTotalCalls = 0
   let allTimeFastCalls = 0
   let allTimeLongestSessionMs = 0
@@ -263,7 +263,6 @@ export function aggregateStats(sessions: Iterable<SessionSummary>, query: StatsQ
   const allTimeSkillNames = new Set<string>()
 
   const fastPattern = options.fastModelPattern
-  const excludeTools = options.pluginToolExclude
 
   for (const session of allSessions) {
     if (!inScope(session, query)) continue
@@ -272,11 +271,7 @@ export function aggregateStats(sessions: Iterable<SessionSummary>, query: StatsQ
     for (const [skillName, runs] of Object.entries(session.skills)) {
       allTimeSkillInvocations += runs
       allTimeSkillNames.add(skillName)
-      pluginRuns.set(skillName, (pluginRuns.get(skillName) ?? 0) + runs)
-    }
-    for (const [toolName, runs] of Object.entries(session.tools)) {
-      if (excludeTools !== undefined && excludeTools.has(toolName.toLowerCase())) continue
-      pluginRuns.set(toolName, (pluginRuns.get(toolName) ?? 0) + runs)
+      skillRuns.set(skillName, (skillRuns.get(skillName) ?? 0) + runs)
     }
     const spanMs = sessionSpanMs(session)
     if (spanMs > allTimeLongestSessionMs) allTimeLongestSessionMs = spanMs
@@ -369,7 +364,7 @@ export function aggregateStats(sessions: Iterable<SessionSummary>, query: StatsQ
   const sortedAllTimeModels = [...allTimeModels.values()].sort((a, b) => b.tokens - a.tokens || a.key.localeCompare(b.key))
   for (const model of sortedAllTimeModels) model.percent = allTimeTotals.tokens === 0 ? 0 : model.tokens / allTimeTotals.tokens * 100
 
-  const topPlugins: PluginUsage[] = [...pluginRuns.entries()]
+  const topSkills: SkillUsage[] = [...skillRuns.entries()]
     .map(([name, runs]) => ({ name, runs }))
     .sort((a, b) => b.runs - a.runs || a.name.localeCompare(b.name))
     .slice(0, 5)
@@ -393,7 +388,7 @@ export function aggregateStats(sessions: Iterable<SessionSummary>, query: StatsQ
     days,
     models: sortedModels,
     workspaces,
-    topPlugins,
+    topSkills,
     index: {
       sessions: allSessions.length,
       lastUpdatedAt: allSessions.length === 0 ? null : Math.max(...allSessions.map(session => session.indexedAt)),
