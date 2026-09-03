@@ -1,0 +1,8 @@
+- insert:
+    - id: activity-dashboard
+      name: dsh-activity-dashboard
+      inject: [sessionQuery, webServer]
+      config:
+        indexConcurrency: 2
+        cacheWriteDelayMs: 1000
+        apiPath: /activity-dashboard/v1
