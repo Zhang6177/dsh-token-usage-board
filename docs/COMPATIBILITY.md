@@ -11,9 +11,12 @@
 DeepSeek Harness 仍处于开发者预览阶段，后续版本可能包含不兼容改动。本插件只依赖以下公开接口：
 
 - Host：`sessionQuery`、`session/event` 和 `webServer`；
-- Client：`sidebar.footer.action` 和 `shell.overlay` 插槽；
+- Client：`sidebar.footer.action` 插槽（入口按钮），面板挂载到对话中栏
+  （`[data-pane="conversation"]` / `[class*="centerCol"]`），与
+  dsh-client-ui-task-board / cron-explorer 共用同一套「单占用中栏」互斥
+  协议（`<html>` 上的激活属性 + `dsh-panel-activate` 自定义事件）；
 - 所有 `@deepseek-ai/*` 运行时模块均声明为对等依赖，复用 Profile 提供的同一实例；
-- 不查询、监听或修改 Harness 所有的 DOM 节点。
+- 除上述中栏挂载点外，不查询、监听或修改 Harness 的 DOM 节点。
 
 每次发布必须完成：
 
