@@ -496,7 +496,7 @@ function mountPanel(controller: PanelController): () => void {
     const column = document.querySelector<HTMLElement>(CONVERSATION_COLUMN_SELECTOR)
     if (column === null) return
     container = document.createElement('div')
-    container.dataset.dshUsageStatsView = ''
+    container.dataset.dshTokenUsageBoardView = ''
     container.dataset.dshPlugin = 'token-usage-board'
     column.appendChild(container)
     root = createRoot(container)

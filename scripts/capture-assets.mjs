@@ -77,7 +77,7 @@ function sampleSessions() {
     return {
       id: `sample-session-${String(sessionIndex + 1).padStart(2, '0')}`,
       createdAt: activities[0]?.time ?? Date.now(),
-      cwd: sessionIndex % 3 === 0 ? 'D:\\Projects\\sample-app' : 'D:\\Projects\\docs-site',
+      cwd: sessionIndex % 3 === 0 ? '/home/demo/sample-app' : '/home/demo/docs-site',
       lastSeq: seq - 1,
       indexedAt: Date.now(),
       firstAt: activities[0]?.time,

@@ -106,6 +106,22 @@ if (
   throw new Error(`UI contract failed: ${JSON.stringify(report)}`)
 }
 
+if (process.env.CAPTURE_DEBUG) {
+  const diag = await evaluate(`(() => {
+    const panel = document.querySelector('[data-dsh-token-usage-board-view]')
+    const col = document.querySelector('[data-pane="conversation"]') ?? document.querySelector('[class*="centerCol"]')
+    const rect = node => { const r = node?.getBoundingClientRect(); return r ? { w: Math.round(r.width), h: Math.round(r.height) } : null }
+    return {
+      activeAttr: document.documentElement.hasAttribute('data-dsh-token-usage-board-active'),
+      column: rect(col), columnClass: col ? String(col.className).slice(0, 80) : null,
+      panel: rect(panel), panelDisplay: panel ? getComputedStyle(panel).display : 'PANEL-NULL',
+      panelParent: panel && panel.parentElement ? String(panel.parentElement.className).slice(0, 80) : null,
+      shell: rect(document.querySelector('.us-shell')),
+    }
+  })()`)
+  console.log('[capture-debug] ' + JSON.stringify(diag))
+}
+
 if (screenshotDir) {
   await mkdir(screenshotDir, { recursive: true })
   const capture = async (filename, captureBeyondViewport = true) => {
