@@ -138,10 +138,7 @@ Harness 仍在持续更新。本文仅声明经过实际测试的运行环境；
 
 ## 🙏 致谢
 
-- 感谢 [@Grivn](https://github.com/Grivn) 在 [#1](https://github.com/lanlandeli/dsh-usage-stats/pull/1) 中发现并分析子任务继承上下文重复统计问题。
-- 感谢 [@yzke](https://github.com/yzke) 在 [#2](https://github.com/lanlandeli/dsh-usage-stats/pull/2) 中提出并实现中英文界面适配方案。
-- 感谢 [@ogj130](https://github.com/ogj130) 在 [#3](https://github.com/lanlandeli/dsh-usage-stats/pull/3) 中贡献调用明细功能的初始实现。
-- 感谢 [@zhu637882-stack](https://github.com/zhu637882-stack) 在 [#4](https://github.com/lanlandeli/dsh-usage-stats/issues/4) 中报告官方模块重复安装风险。
+本插件基于开源项目 [dsh-usage-stats](https://github.com/lanlandeli/dsh-usage-stats) 开发，感谢原作者 [@lanlandeli](https://github.com/lanlandeli) 的开源工作。
 
 ## 📜 许可证
 

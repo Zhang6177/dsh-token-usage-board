@@ -131,10 +131,7 @@ Do not include API keys, access tokens, or private local data in a public Issue.
 
 ## Acknowledgements
 
-- Thanks to [@Grivn](https://github.com/Grivn) for identifying and analyzing inherited parent context being counted as subtask usage in [#1](https://github.com/lanlandeli/dsh-usage-stats/pull/1).
-- Thanks to [@yzke](https://github.com/yzke) for proposing and implementing the Chinese and English UI adaptation in [#2](https://github.com/lanlandeli/dsh-usage-stats/pull/2).
-- Thanks to [@ogj130](https://github.com/ogj130) for the initial call-detail implementation in [#3](https://github.com/lanlandeli/dsh-usage-stats/pull/3).
-- Thanks to [@zhu637882-stack](https://github.com/zhu637882-stack) for reporting the duplicate official module risk in [#4](https://github.com/lanlandeli/dsh-usage-stats/issues/4).
+This plugin is developed based on the open-source project [dsh-usage-stats](https://github.com/lanlandeli/dsh-usage-stats). Thanks to the original author [@lanlandeli](https://github.com/lanlandeli) for the open-source work.
 
 ## License
 
