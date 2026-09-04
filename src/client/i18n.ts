@@ -126,12 +126,12 @@ const en: Dictionary = {
 }
 
 export type I18nKey = keyof typeof zh
-export const NS = 'activity-dashboard'
+export const NS = 'token-usage-board'
 export const dictionaries: Record<Language, Dictionary> = { zh, en }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    'activity-dashboard': I18nKey
+    'token-usage-board': I18nKey
   }
 }
 

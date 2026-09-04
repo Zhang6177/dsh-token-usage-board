@@ -1,8 +1,8 @@
 ﻿## =============================================================================
-# dsh-activity-dashboard 一键安装脚本（官方 CLI 方式，Windows PowerShell 5.1+ / pwsh）
+# dsh-token-usage-board 一键安装脚本（官方 CLI 方式，Windows PowerShell 5.1+ / pwsh）
 #
 # 通过 DSH 官方插件命令安装 npm 包并自动挂载：
-#   dsh plugin --profile web add dsh-activity-dashboard@<version>
+#   dsh plugin --profile web add dsh-token-usage-board@<version>
 #
 # 包内声明了 dsh.bundle.patch（cordis.patch.yml）：CLI 的 bundle 协调会把它
 # 自动加进 profile 的 dsh.profile.bundles，下次启动即挂载——无需手动写
@@ -11,10 +11,10 @@
 #
 # 用法（任选其一）：
 #   # 默认最新版
-#   $script = (irm 'https://raw.githubusercontent.com/Zhang6177/dsh-activity-dashboard/main/scripts/install.ps1').TrimStart([char]0xFEFF)
+#   $script = (irm 'https://raw.githubusercontent.com/Zhang6177/dsh-token-usage-board/main/scripts/install.ps1').TrimStart([char]0xFEFF)
 #   & ([scriptblock]::Create($script))
 #   # 指定版本 / 装完重启
-#   $script = (irm 'https://raw.githubusercontent.com/Zhang6177/dsh-activity-dashboard/main/scripts/install.ps1').TrimStart([char]0xFEFF)
+#   $script = (irm 'https://raw.githubusercontent.com/Zhang6177/dsh-token-usage-board/main/scripts/install.ps1').TrimStart([char]0xFEFF)
 #   & ([scriptblock]::Create($script)) -Version 0.3.0 -Restart
 #   # 本地保存后运行
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Version 0.3.0 -DryRun
@@ -34,7 +34,7 @@
 # - 本插件无原生依赖、无构建脚本，不需要 pnpm 构建许可。
 # - pnpm 11 的 minimumReleaseAge 会拒绝发布 <24h 的新版本。脚本会预写
 #   minimumReleaseAgeExclude（幂等），放行本插件，避免“重跑一次才成功”。
-# - 回滚：dsh plugin --profile web remove dsh-activity-dashboard
+# - 回滚：dsh plugin --profile web remove dsh-token-usage-board
 # =============================================================================
 param(
   [string]$Version = '',
@@ -44,7 +44,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$PKG = 'dsh-activity-dashboard'
+$PKG = 'dsh-token-usage-board'
 $REGISTRY = if ($env:REGISTRY) { $env:REGISTRY } else { 'https://registry.npmjs.org' }
 
 # DSH_HOME：DSH_HOME 环境变量 > %USERPROFILE% > $HOME

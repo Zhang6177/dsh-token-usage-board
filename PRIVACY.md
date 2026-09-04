@@ -1,6 +1,6 @@
 # 隐私说明与数据流
 
-`dsh-activity-dashboard` 在运行 DeepSeek Harness 的同一台设备上完成统计，不向插件作者或第三方服务发送遥测数据。
+`dsh-token-usage-board` 在运行 DeepSeek Harness 的同一台设备上完成统计，不向插件作者或第三方服务发送遥测数据。
 
 ## 读取的数据
 
@@ -15,12 +15,12 @@
 
 ## 本地索引
 
-默认索引文件为 `DSH_HOME/activity-dashboard/index-v1.json`。其中仅保存生成统计所需的会话摘要，避免每次启动时重复读取全部会话记录。索引采用延迟合并与原子写入；在操作系统支持时，请求仅所有者可访问的文件权限。可通过 `cachePath` 修改保存位置。
+默认索引文件为 `DSH_HOME/token-usage-board/index-v1.json`。其中仅保存生成统计所需的会话摘要，避免每次启动时重复读取全部会话记录。索引采用延迟合并与原子写入；在操作系统支持时，请求仅所有者可访问的文件权限。可通过 `cachePath` 修改保存位置。
 
 ## 浏览器接口
 
-插件在 `/activity-dashboard/v1` 下注册同源接口，仅接受 GET 和 HEAD 请求并返回汇总数据。CSV 与 JSON 导出内容包括日期、提供商与模型标识、Token 总量、消息总量和会话总量。
+插件在 `/token-usage-board/v1` 下注册同源接口，仅接受 GET 和 HEAD 请求并返回汇总数据。CSV 与 JSON 导出内容包括日期、提供商与模型标识、Token 总量、消息总量和会话总量。
 
 ## 删除数据
 
-卸载插件不会自动删除统计索引。如需同时清除本地统计，请手动删除 `DSH_HOME/activity-dashboard`。
+卸载插件不会自动删除统计索引。如需同时清除本地统计，请手动删除 `DSH_HOME/token-usage-board`。

@@ -46,8 +46,8 @@ const SIBLING_ATTRS = ['data-dsh-taskboard-active', 'data-dsh-ssh-active', 'data
 /** Cross-plugin activation event details announcing the other center-column panels. */
 const SIBLING_DETAILS = ['taskboard', 'ssh', 'cron-explorer-v2'] as const
 const ACTIVATE_EVENT = 'dsh-panel-activate'
-const PANEL_NAME = 'activity-dashboard'
-const ACTIVE_ATTR = 'data-dsh-activity-dashboard-active'
+const PANEL_NAME = 'token-usage-board'
+const ACTIVE_ATTR = 'data-dsh-token-usage-board-active'
 const CONVERSATION_COLUMN_SELECTOR = '[data-pane="conversation"], [class*="centerCol"]'
 /** Sidebar context clicks hand the center column back to the conversation. */
 const SIDEBAR_ROW_SELECTOR = '[class*="sessionRow"], [class*="projectRow"], [class*="searchResultRow"], [class*="searchResultWorkspace"], [class*="newSession"]'
@@ -66,7 +66,7 @@ type FooterProps = PropsRuntime<'sidebar.footer.action'> & Injected
 function FooterAction({ wide, useController, toggle }: FooterProps): ReactNode {
   const { t } = useLocale()
   const open = useController(value => value)
-  return <button data-activity-dashboard className="us-nav" data-rail={!wide} data-active={open || undefined} onClick={toggle} title={wide ? undefined : t('nav')} aria-label={t('nav')}>
+  return <button data-token-usage-board className="us-nav" data-rail={!wide} data-active={open || undefined} onClick={toggle} title={wide ? undefined : t('nav')} aria-label={t('nav')}>
     <Icon name="chart" />{wide && <span>{t('nav')}</span>}
   </button>
 }
@@ -99,7 +99,7 @@ function clampTipX(x: number): number {
 /**
  * Floating tooltip shared by every chart (the "daily" heat-grid effect):
  * a fixed-position card portaled to <body>, shown on hover and removed on
- * leave. Mirrors the host theme via the --us-* tokens on [data-activity-dashboard].
+ * leave. Mirrors the host theme via the --us-* tokens on [data-token-usage-board].
  */
 interface FloatingTip {
   x: number
@@ -112,7 +112,7 @@ function useFloatingTip(): { show: (x: number, y: number, text: string) => void;
   const show = useCallback((x: number, y: number, text: string): void => { setTip({ x, y, text }) }, [])
   const hide = useCallback((): void => { setTip(null) }, [])
   const node: ReactNode = tip === null ? null
-    : createPortal(<div data-activity-dashboard className="us-floating-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{tip.text}</div>, document.body)
+    : createPortal(<div data-token-usage-board className="us-floating-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{tip.text}</div>, document.body)
   return { show, hide, node }
 }
 
@@ -445,13 +445,13 @@ function Dashboard({ hide }: { hide: () => void }): ReactNode {
   }, [])
   const refresh = useCallback((signal?: AbortSignal) => {
     setError(null)
-    fetch(`/activity-dashboard/v1/snapshot?${query}`, { signal: signal ?? null, headers: { accept: 'application/json' } })
+    fetch(`/token-usage-board/v1/snapshot?${query}`, { signal: signal ?? null, headers: { accept: 'application/json' } })
       .then(async response => { if (!response.ok) throw new Error((await response.json() as { error?: string }).error ?? `HTTP ${response.status}`); return response.json() as Promise<StatsSnapshot> })
       .then(setSnapshot).catch((reason: unknown) => { if ((reason as { name?: string }).name !== 'AbortError') setError(reason instanceof Error ? reason.message : String(reason)) })
   }, [query])
   useEffect(() => { const abort = new AbortController(); refresh(abort.signal); return () => { abort.abort() } }, [refresh])
   useEffect(() => { const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') hide() }; window.addEventListener('keydown', onKey); return () => { window.removeEventListener('keydown', onKey) } }, [hide])
-  return <div data-activity-dashboard className="us-shell" role="region" aria-label={t('title')}>
+  return <div data-token-usage-board className="us-shell" role="region" aria-label={t('title')}>
     <header className="us-top"><div className="us-heading"><div className="us-title">{t('title')}</div><span className="us-tab">{t('appUsage')}</span></div><button className="us-back" onClick={hide}><Icon name="back" size={17} />{t('back')}</button></header>
     <main className="us-scroll"><div className="us-content">
       {error ? <div className="us-state"><div><p>{t('loadError')}</p><small>{error}</small></div></div> : snapshot === null ? <div className="us-state"><div><div className="us-spinner" />{t('loading')}</div></div> : <>
@@ -497,7 +497,7 @@ function mountPanel(controller: PanelController): () => void {
     if (column === null) return
     container = document.createElement('div')
     container.dataset.dshUsageStatsView = ''
-    container.dataset.dshPlugin = 'activity-dashboard'
+    container.dataset.dshPlugin = 'token-usage-board'
     column.appendChild(container)
     root = createRoot(container)
     root.render(<PanelView controller={controller} />)
@@ -569,21 +569,21 @@ function mountPanel(controller: PanelController): () => void {
 
 export function apply(ctx: ClientContext & { locale: LocaleRuntime }): void {
   const uninstallLocale = installLocale(ctx.locale)
-  ctx.effect(() => uninstallLocale, 'activity-dashboard: locale dictionaries')
+  ctx.effect(() => uninstallLocale, 'token-usage-board: locale dictionaries')
   const style = document.createElement('style')
-  style.dataset.plugin = 'dsh-activity-dashboard'
+  style.dataset.plugin = 'dsh-token-usage-board'
   style.textContent = styles
   document.head.appendChild(style)
-  ctx.effect(() => () => { style.remove() }, 'activity-dashboard: styles')
+  ctx.effect(() => () => { style.remove() }, 'token-usage-board: styles')
   const controller = new PanelController()
   const injected = () => ({ hooks: { controller }, show: controller.show, hide: controller.hide, toggle: controller.toggle })
-  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({ name: 'sidebar.footer.action', id: 'activity-dashboard', order: 20, inject: injected }, FooterAction))
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({ name: 'sidebar.footer.action', id: 'token-usage-board', order: 20, inject: injected }, FooterAction))
   try {
     // Failure policy mirrors the reference plugins: DOM mounting problems are
     // logged, never thrown — a throwing client apply fails the whole web boot.
     const disposePanel = mountPanel(controller)
-    ctx.effect(() => disposePanel, 'activity-dashboard: center-column panel')
+    ctx.effect(() => disposePanel, 'token-usage-board: center-column panel')
   } catch (error) {
-    console.warn('[dsh-activity-dashboard] center-column panel mount failed:', error)
+    console.warn('[dsh-token-usage-board] center-column panel mount failed:', error)
   }
 }

@@ -1,15 +1,15 @@
 {
-  "name": "dsh-activity-dashboard",
+  "name": "dsh-token-usage-board",
   "version": "0.3.0",
   "description": "Lightweight usage analytics for DeepSeek Harness — activity dashboard, token heatmaps, activity insights, model breakdowns, and exports.",
   "author": "Zhang Qinhan",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Zhang6177/dsh-activity-dashboard.git"
+    "url": "git+https://github.com/Zhang6177/dsh-token-usage-board.git"
   },
-  "homepage": "https://github.com/Zhang6177/dsh-activity-dashboard#readme",
+  "homepage": "https://github.com/Zhang6177/dsh-token-usage-board#readme",
   "bugs": {
-    "url": "https://github.com/Zhang6177/dsh-activity-dashboard/issues"
+    "url": "https://github.com/Zhang6177/dsh-token-usage-board/issues"
   },
   "type": "module",
   "main": "lib/index.js",

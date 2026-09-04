@@ -1,5 +1,5 @@
 export const styles = String.raw`
-[data-activity-dashboard] {
+[data-token-usage-board] {
   --us-bg: var(--dsw-alias-bg-base, #ffffff);
   --us-surface: color-mix(in srgb, var(--dsw-alias-bg-layer-1, #f5f5f5) 92%, var(--us-bg));
   --us-raised: var(--dsw-alias-bg-layer-2, #ffffff);
@@ -14,8 +14,8 @@ export const styles = String.raw`
   font-size: 14px;
   box-sizing: border-box;
 }
-[data-activity-dashboard], [data-activity-dashboard] button, [data-activity-dashboard] input, [data-activity-dashboard] select { font-family: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif); }
-body[data-ds-dark-theme] [data-activity-dashboard] {
+[data-token-usage-board], [data-token-usage-board] button, [data-token-usage-board] input, [data-token-usage-board] select { font-family: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif); }
+body[data-ds-dark-theme] [data-token-usage-board] {
   --us-bg: var(--dsw-alias-bg-base, #18191c);
   --us-surface: var(--dsw-alias-bg-layer-1, #222428);
   --us-raised: var(--dsw-alias-bg-layer-2, #292b30);
@@ -24,7 +24,7 @@ body[data-ds-dark-theme] [data-activity-dashboard] {
   --us-muted: var(--dsw-alias-label-secondary, #a6acb5);
   --us-border: var(--dsw-alias-border-l1, #35383e);
 }
-[data-activity-dashboard] *, [data-activity-dashboard] *::before, [data-activity-dashboard] *::after { box-sizing: border-box; }
+[data-token-usage-board] *, [data-token-usage-board] *::before, [data-token-usage-board] *::after { box-sizing: border-box; }
 
 /* --- center-column takeover (global rules, attribute-scoped) ---------------
    Same single-occupant protocol as dsh-client-ui-task-board / cron-explorer:
@@ -35,7 +35,7 @@ body[data-ds-dark-theme] [data-activity-dashboard] {
 [class*='centerCol'] {
   position: relative;
 }
-[data-dsh-activity-dashboard-view] {
+[data-dsh-token-usage-board-view] {
   position: absolute;
   inset: 0;
   display: none;
@@ -43,7 +43,7 @@ body[data-ds-dark-theme] [data-activity-dashboard] {
   /* Opaque backdrop: the conversation subtree stays mounted underneath. */
   background: var(--dsw-alias-bg-base, #ffffff);
 }
-html[data-dsh-activity-dashboard-active] [data-dsh-activity-dashboard-view] {
+html[data-dsh-token-usage-board-active] [data-dsh-token-usage-board-view] {
   display: block;
 }
 /* While the panel is active, the conversation content underneath is hidden.
@@ -51,8 +51,8 @@ html[data-dsh-activity-dashboard-active] [data-dsh-activity-dashboard-view] {
    node with an inline "display: contents", and inline styles beat a plain
    stylesheet rule. Without it the composer (input card) stays visible at the
    bottom and paints over the panel. */
-html[data-dsh-activity-dashboard-active] [data-pane='conversation'] > :not([data-dsh-activity-dashboard-view]),
-html[data-dsh-activity-dashboard-active] [class*='centerCol'] > :not([data-dsh-activity-dashboard-view]) {
+html[data-dsh-token-usage-board-active] [data-pane='conversation'] > :not([data-dsh-token-usage-board-view]),
+html[data-dsh-token-usage-board-active] [class*='centerCol'] > :not([data-dsh-token-usage-board-view]) {
   display: none !important;
 }
 

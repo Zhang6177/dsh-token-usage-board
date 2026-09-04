@@ -1,21 +1,21 @@
-# 📊 dsh-activity-dashboard
+# 📊 dsh-token-usage-board
 
 [English](./README.en.md)
 
 > DeepSeek Harness Token 使用情况，一目了然。
 
-[![npm version](https://img.shields.io/npm/v/dsh-activity-dashboard?style=flat-square&logo=npm)](https://www.npmjs.com/package/dsh-activity-dashboard)
-[![npm downloads](https://img.shields.io/npm/dm/dsh-activity-dashboard?style=flat-square)](https://www.npmjs.com/package/dsh-activity-dashboard)
-[![CI](https://img.shields.io/github/actions/workflow/status/Zhang6177/dsh-activity-dashboard/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/Zhang6177/dsh-activity-dashboard/actions)
+[![npm version](https://img.shields.io/npm/v/dsh-token-usage-board?style=flat-square&logo=npm)](https://www.npmjs.com/package/dsh-token-usage-board)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-token-usage-board?style=flat-square)](https://www.npmjs.com/package/dsh-token-usage-board)
+[![CI](https://img.shields.io/github/actions/workflow/status/Zhang6177/dsh-token-usage-board/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/Zhang6177/dsh-token-usage-board/actions)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%7C%7C%20%3E%3D24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![License](https://img.shields.io/npm/l/dsh-activity-dashboard?style=flat-square)](./LICENSE)
+[![License](https://img.shields.io/npm/l/dsh-token-usage-board?style=flat-square)](./LICENSE)
 
-dsh-activity-dashboard 是面向 DeepSeek Harness Web UI 的轻量使用统计插件，提供活动看板：累计 / 峰值 Token、最长聊天时长、连续活跃天数、每日 / 每周 / 每月 / 累计 Token 活动热力图、活动洞察（快速模式、推理强度、技能使用）、最常用的技能与模型 Token 占比。
+dsh-token-usage-board 是面向 DeepSeek Harness Web UI 的轻量使用统计插件，提供活动看板：累计 / 峰值 Token、最长聊天时长、连续活跃天数、每日 / 每周 / 每月 / 累计 Token 活动热力图、活动洞察（快速模式、推理强度、技能使用）、最常用的技能与模型 Token 占比。
 
 插件通过 Harness 提供的扩展接口集成，不修改 Web UI 或官方 npm 包。统计数据保存在本机。
 
 ```sh
-dsh plugin --profile web add dsh-activity-dashboard
+dsh plugin --profile web add dsh-token-usage-board
 ```
 
 重启 Web Profile 后，侧边栏「设置」上方会出现 **使用统计**。
@@ -23,18 +23,18 @@ dsh plugin --profile web add dsh-activity-dashboard
 更新或卸载：
 
 ```sh
-dsh plugin --profile web update dsh-activity-dashboard
-dsh plugin --profile web remove dsh-activity-dashboard
+dsh plugin --profile web update dsh-token-usage-board
+dsh plugin --profile web remove dsh-token-usage-board
 ```
 
 其他安装方式：
 
 ```sh
 # 一行安装脚本（macOS / Linux / Windows Git Bash）
-curl -fsSL https://raw.githubusercontent.com/Zhang6177/dsh-activity-dashboard/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Zhang6177/dsh-token-usage-board/main/scripts/install.sh | bash
 ```
 
-或在 Web 界面中：**设置 → 插件市场**（`dshmarket` 插件）→ 搜索 `dsh-activity-dashboard` 一键安装。
+或在 Web 界面中：**设置 → 插件市场**（`dshmarket` 插件）→ 搜索 `dsh-token-usage-board` 一键安装。
 
 ## 🎬 效果演示
 
@@ -86,7 +86,7 @@ Fork 子任务只统计自身产生的调用，不把从父会话继承的上下
 config:
   indexConcurrency: 2
   cacheWriteDelayMs: 1000
-  apiPath: /activity-dashboard/v1
+  apiPath: /token-usage-board/v1
   fastModelPattern: flash|turbo|lite|nano|haiku|fast|mini
 ```
 
@@ -95,12 +95,12 @@ config:
 | `indexConcurrency` | 同时读取历史会话的数量（`1`–`8`） | `2` |
 | `cacheWriteDelayMs` | 更新本地统计前的等待时间（毫秒） | `1000` |
 | `cachePath` | 自定义统计缓存位置 | Harness 数据目录 |
-| `apiPath` | 统计接口路径 | `/activity-dashboard/v1` |
+| `apiPath` | 统计接口路径 | `/token-usage-board/v1` |
 | `fastModelPattern` | 判定"快速模型"的模型名正则（不区分大小写），用于活动洞察的快速模式占比 | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
 
 ## 📡 数据接口
 
-插件在 Harness Web 同源地址上暴露一组**只读** HTTP 接口（默认基路径 `/activity-dashboard/v1`，可通过 `apiPath` 配置），供其他插件或外部工具消费：
+插件在 Harness Web 同源地址上暴露一组**只读** HTTP 接口（默认基路径 `/token-usage-board/v1`，可通过 `apiPath` 配置），供其他插件或外部工具消费：
 
 | 端点 | 说明 |
 | --- | --- |
@@ -113,7 +113,7 @@ config:
 
 ## 🔒 隐私与安全
 
-- 统计索引保存在 `DSH_HOME/activity-dashboard`，内容包括会话标识、时间、工作目录、模型名称和 Token 数量。
+- 统计索引保存在 `DSH_HOME/token-usage-board`，内容包括会话标识、时间、工作目录、模型名称和 Token 数量。
 - 插件**不保存**提示词正文、回复正文、工具参数或 API 密钥。
 - 具体记录范围见 [隐私说明](./PRIVACY.md)。
 
@@ -125,7 +125,7 @@ Harness 仍在持续更新。本文仅声明经过实际测试的运行环境；
 
 ## 🐛 遇到问题
 
-如果出现插件入口缺失、统计结果不完整、界面显示异常或版本兼容问题，请 [提交 Issue](https://github.com/Zhang6177/dsh-activity-dashboard/issues/new)。
+如果出现插件入口缺失、统计结果不完整、界面显示异常或版本兼容问题，请 [提交 Issue](https://github.com/Zhang6177/dsh-token-usage-board/issues/new)。
 
 提交时请尽量附上：
 

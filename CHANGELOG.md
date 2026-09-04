@@ -32,14 +32,14 @@ First public release.
 - One-click install scripts shipped with the npm package:
   `scripts/install.sh` (macOS / Linux / Windows Git Bash) and
   `scripts/install.ps1` (PowerShell 5.1+). They wrap the official
-  `dsh plugin --profile <name> add dsh-activity-dashboard[@version]`
+  `dsh plugin --profile <name> add dsh-token-usage-board[@version]`
   command, resolve `latest` to the current npm version when online,
   pre-write the idempotent `minimumReleaseAgeExclude` entry into the
   profile's `pnpm-workspace.yaml` (pnpm 11 release-age grace period), verify
   the bundle registration in `dsh.profile.bundles`, and offer an opt-in
   `--restart` / `-Restart` (pm2). `--dry-run` / `-DryRun` print the plan
   without touching anything.
-- Read-only, same-origin data API under `/activity-dashboard/v1`
+- Read-only, same-origin data API under `/token-usage-board/v1`
   (configurable via `apiPath`): `/snapshot`, `/calls` (paginated, with model
   / provider / token-threshold filters), `/export.csv`, `/export.json`.
   Parameters, response shapes, the error contract, and the v1 stability
@@ -56,7 +56,7 @@ First public release.
 - Forked subtasks count only the calls they produce themselves; context
   inherited from the parent session is not attributed to them.
 - Statistics are computed on the local machine only. The index lives in
-  `DSH_HOME/activity-dashboard` and never stores prompts, responses, tool
+  `DSH_HOME/token-usage-board` and never stores prompts, responses, tool
   arguments, or credentials (see `PRIVACY.md`).
 - Verified on DeepSeek Harness `0.1.1-rc.2` with Node.js `22.19+` / `24+`;
   see `docs/COMPATIBILITY.md`.

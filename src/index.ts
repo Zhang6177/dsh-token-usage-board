@@ -10,7 +10,7 @@ import z from '@deepseek-ai/schemastery'
 import { aggregateStats, appendActivity, collectCalls, exportCsv, newCollectState, summarizeSession, type CollectState } from './core.js'
 import type { AggregateOptions, CallRecord, CallsFilter, CallsPage, IndexCache, SessionSummary, StatsQuery, TaskScope } from './types.js'
 
-export const name = 'activity-dashboard'
+export const name = 'token-usage-board'
 export const inject = ['sessionQuery', 'webServer']
 
 const DEFAULT_FAST_MODEL_PATTERN = 'flash|turbo|lite|nano|haiku|fast|mini'
@@ -28,7 +28,7 @@ export const Config: z<Config> = z.object({
   indexConcurrency: z.natural().min(1).max(8).default(2).description('Concurrent historical session reads.'),
   cacheWriteDelayMs: z.natural().min(250).max(30_000).default(1000).description('Debounce delay for local index writes.'),
   cachePath: z.string().description('Optional index path; defaults below DSH_HOME.'),
-  apiPath: z.string().default('/activity-dashboard/v1').description('Same-origin read-only API prefix.'),
+  apiPath: z.string().default('/token-usage-board/v1').description('Same-origin read-only API prefix.'),
   fastModelPattern: z.regExp('i').default(new RegExp(DEFAULT_FAST_MODEL_PATTERN, 'i')).description('Case-insensitive regex matching fast model ids (e.g. flash variants).'),
 })
 
@@ -111,7 +111,7 @@ class UsageIndex {
   private readonly aggregateOptions: AggregateOptions
 
   constructor(private readonly ctx: Context, private readonly config: Required<Pick<Config, 'indexConcurrency' | 'cacheWriteDelayMs' | 'apiPath' | 'fastModelPattern'>> & Config) {
-    this.cachePath = config.cachePath ?? dshHomePath('activity-dashboard', 'index-v1.json')
+    this.cachePath = config.cachePath ?? dshHomePath('token-usage-board', 'index-v1.json')
     this.aggregateOptions = {
       fastModelPattern: config.fastModelPattern,
     }
@@ -123,8 +123,8 @@ class UsageIndex {
       kind: 'prefix',
       path: this.config.apiPath,
       handler: (req, res) => this.handle(req, res),
-    }), 'activity-dashboard: read-only API')
-    this.ctx.effect(() => () => { void this.dispose() }, 'activity-dashboard: local index lifecycle')
+    }), 'token-usage-board: read-only API')
+    this.ctx.effect(() => () => { void this.dispose() }, 'token-usage-board: local index lifecycle')
     this.loading = this.initialize().catch((error: unknown) => {
       this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
     })
@@ -259,7 +259,7 @@ class UsageIndex {
         const csv = exportCsv(snapshot)
         res.writeHead(200, {
           'content-type': 'text/csv; charset=utf-8',
-          'content-disposition': 'attachment; filename="dsh-activity-dashboard.csv"',
+          'content-disposition': 'attachment; filename="dsh-token-usage-board.csv"',
           'cache-control': 'no-store',
           'x-content-type-options': 'nosniff',
         })
@@ -267,7 +267,7 @@ class UsageIndex {
         return
       }
       if (path === `${this.config.apiPath}/export.json`) {
-        res.setHeader('content-disposition', 'attachment; filename="dsh-activity-dashboard.json"')
+        res.setHeader('content-disposition', 'attachment; filename="dsh-token-usage-board.json"')
       } else if (path !== `${this.config.apiPath}/snapshot`) {
         sendJson(res, 404, { error: 'Not found' })
         return
@@ -301,7 +301,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     ...config,
     indexConcurrency: config.indexConcurrency ?? 2,
     cacheWriteDelayMs: config.cacheWriteDelayMs ?? 1000,
-    apiPath: (config.apiPath ?? '/activity-dashboard/v1').replace(/\/$/, ''),
+    apiPath: (config.apiPath ?? '/token-usage-board/v1').replace(/\/$/, ''),
     fastModelPattern: compileFastPattern(config.fastModelPattern),
   }
   new UsageIndex(ctx, normalized).start()

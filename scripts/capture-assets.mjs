@@ -10,7 +10,7 @@ const npmCli = process.env.npm_execpath
 const chrome = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 if (!npmCli) throw new Error('npm_execpath is unavailable; run through npm run assets:capture')
 
-const temporary = await mkdtemp(join(tmpdir(), 'dsh-activity-dashboard-capture-'))
+const temporary = await mkdtemp(join(tmpdir(), 'dsh-token-usage-board-capture-'))
 const dshHome = join(temporary, 'home')
 const packageDir = join(temporary, 'package')
 const environment = { ...process.env, DSH_HOME: dshHome, NO_COLOR: '1' }
@@ -91,8 +91,8 @@ function sampleSessions() {
 
 try {
   await mkdir(packageDir, { recursive: true })
-  await mkdir(join(dshHome, 'activity-dashboard'), { recursive: true })
-  await writeFile(join(dshHome, 'activity-dashboard', 'index-v1.json'), JSON.stringify({ schema: 5, sessions: sampleSessions() }), 'utf8')
+  await mkdir(join(dshHome, 'token-usage-board'), { recursive: true })
+  await writeFile(join(dshHome, 'token-usage-board', 'index-v1.json'), JSON.stringify({ schema: 5, sessions: sampleSessions() }), 'utf8')
   await runNode(npmCli, ['run', 'build'])
   const packed = await runNode(npmCli, ['pack', '--json', '--ignore-scripts', '--pack-destination', packageDir])
   const filename = JSON.parse(packed.stdout)[0]?.filename

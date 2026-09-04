@@ -1,8 +1,8 @@
 - insert:
-    - id: activity-dashboard
-      name: dsh-activity-dashboard
+    - id: token-usage-board
+      name: dsh-token-usage-board
       inject: [sessionQuery, webServer]
       config:
         indexConcurrency: 2
         cacheWriteDelayMs: 1000
-        apiPath: /activity-dashboard/v1
+        apiPath: /token-usage-board/v1

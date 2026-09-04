@@ -1,21 +1,21 @@
-# 📊 dsh-activity-dashboard
+# 📊 dsh-token-usage-board
 
 [简体中文](./README.md)
 
 > DeepSeek Harness token usage at a glance.
 
-[![npm version](https://img.shields.io/npm/v/dsh-activity-dashboard?style=flat-square&logo=npm)](https://www.npmjs.com/package/dsh-activity-dashboard)
-[![npm downloads](https://img.shields.io/npm/dm/dsh-activity-dashboard?style=flat-square)](https://www.npmjs.com/package/dsh-activity-dashboard)
-[![CI](https://img.shields.io/github/actions/workflow/status/Zhang6177/dsh-activity-dashboard/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/Zhang6177/dsh-activity-dashboard/actions)
+[![npm version](https://img.shields.io/npm/v/dsh-token-usage-board?style=flat-square&logo=npm)](https://www.npmjs.com/package/dsh-token-usage-board)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-token-usage-board?style=flat-square)](https://www.npmjs.com/package/dsh-token-usage-board)
+[![CI](https://img.shields.io/github/actions/workflow/status/Zhang6177/dsh-token-usage-board/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/Zhang6177/dsh-token-usage-board/actions)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%7C%7C%20%3E%3D24-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![License](https://img.shields.io/npm/l/dsh-activity-dashboard?style=flat-square)](./LICENSE)
+[![License](https://img.shields.io/npm/l/dsh-token-usage-board?style=flat-square)](./LICENSE)
 
-dsh-activity-dashboard is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents an activity dashboard: total / peak tokens, longest chat duration, active-day streaks, daily / weekly / monthly / cumulative token activity views, activity insights (fast mode, reasoning effort, skill usage), the most-used skills (Top 5), and per-model token share.
+dsh-token-usage-board is a lightweight usage analytics plugin for the DeepSeek Harness Web UI. It presents an activity dashboard: total / peak tokens, longest chat duration, active-day streaks, daily / weekly / monthly / cumulative token activity views, activity insights (fast mode, reasoning effort, skill usage), the most-used skills (Top 5), and per-model token share.
 
 The plugin integrates through Harness extension APIs without modifying the Web UI or official npm packages. Statistics remain on the local machine.
 
 ```sh
-dsh plugin --profile web add dsh-activity-dashboard
+dsh plugin --profile web add dsh-token-usage-board
 ```
 
 Restart the Web profile and open **Usage Statistics** above Settings in the sidebar.
@@ -23,18 +23,18 @@ Restart the Web profile and open **Usage Statistics** above Settings in the side
 Update or remove the plugin:
 
 ```sh
-dsh plugin --profile web update dsh-activity-dashboard
-dsh plugin --profile web remove dsh-activity-dashboard
+dsh plugin --profile web update dsh-token-usage-board
+dsh plugin --profile web remove dsh-token-usage-board
 ```
 
 Other install options:
 
 ```sh
 # One-line install script (macOS / Linux / Windows Git Bash)
-curl -fsSL https://raw.githubusercontent.com/Zhang6177/dsh-activity-dashboard/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Zhang6177/dsh-token-usage-board/main/scripts/install.sh | bash
 ```
 
-Or in the Web UI: **Settings → Plugin Market** (the `dshmarket` plugin) → search `dsh-activity-dashboard` and install with one click.
+Or in the Web UI: **Settings → Plugin Market** (the `dshmarket` plugin) → search `dsh-token-usage-board` and install with one click.
 
 ## Demo
 
@@ -86,7 +86,7 @@ Forked subtasks count only the calls they produce themselves; context inherited 
 config:
   indexConcurrency: 2
   cacheWriteDelayMs: 1000
-  apiPath: /activity-dashboard/v1
+  apiPath: /token-usage-board/v1
   fastModelPattern: flash|turbo|lite|nano|haiku|fast|mini
 ```
 
@@ -95,12 +95,12 @@ config:
 | `indexConcurrency` | Number of historical sessions read concurrently (`1`–`8`) | `2` |
 | `cacheWriteDelayMs` | Delay before updating the local index, in milliseconds | `1000` |
 | `cachePath` | Custom index location | Harness data directory |
-| `apiPath` | Statistics API path | `/activity-dashboard/v1` |
+| `apiPath` | Statistics API path | `/token-usage-board/v1` |
 | `fastModelPattern` | Case-insensitive regex of model ids that count as "fast" models, used for the fast-mode insight | `flash\|turbo\|lite\|nano\|haiku\|fast\|mini` |
 
 ## Data API
 
-The plugin exposes a same-origin, read-only HTTP API (default base path `/activity-dashboard/v1`, configurable via `apiPath`):
+The plugin exposes a same-origin, read-only HTTP API (default base path `/token-usage-board/v1`, configurable via `apiPath`):
 
 | Endpoint | Description |
 | --- | --- |
@@ -113,7 +113,7 @@ Parameters, response shapes, and the error contract are documented in the [API r
 
 ## Privacy and security
 
-- The local index is stored in `DSH_HOME/activity-dashboard` and contains session identifiers, timestamps, working directories, model names, and token counts.
+- The local index is stored in `DSH_HOME/token-usage-board` and contains session identifiers, timestamps, working directories, model names, and token counts.
 - The plugin does **not** retain prompts, responses, tool arguments, or API keys.
 - See the [privacy policy](./PRIVACY.md) for the exact data scope.
 
@@ -125,7 +125,7 @@ Harness is evolving rapidly. Only environments tested by this project are declar
 
 ## Issues
 
-For a missing plugin entry, incomplete statistics, display errors, or version compatibility problems, [submit an Issue](https://github.com/Zhang6177/dsh-activity-dashboard/issues/new) with the Harness and Node.js versions, installation command, reproduction steps, and relevant logs or screenshots.
+For a missing plugin entry, incomplete statistics, display errors, or version compatibility problems, [submit an Issue](https://github.com/Zhang6177/dsh-token-usage-board/issues/new) with the Harness and Node.js versions, installation command, reproduction steps, and relevant logs or screenshots.
 
 Do not include API keys, access tokens, or private local data in a public Issue. See the [security policy](./SECURITY.md) for vulnerability reporting.
 

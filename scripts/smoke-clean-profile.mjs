@@ -9,7 +9,7 @@ const dshBin = process.env.DSH_BIN || join(projectRoot, 'node_modules', '@deepse
 const npmCli = process.env.npm_execpath
 if (!npmCli) throw new Error('npm_execpath is unavailable; run through npm run smoke:clean-profile')
 
-const temporary = await mkdtemp(join(tmpdir(), 'dsh-activity-dashboard-smoke-'))
+const temporary = await mkdtemp(join(tmpdir(), 'dsh-token-usage-board-smoke-'))
 const dshHome = join(temporary, 'home')
 const packageDir = join(temporary, 'package')
 const environment = { ...process.env, DSH_HOME: dshHome, NO_COLOR: '1' }
@@ -48,7 +48,7 @@ async function stopServer() {
 
 try {
   await mkdir(packageDir, { recursive: true })
-  const cacheDirectory = join(dshHome, 'activity-dashboard')
+  const cacheDirectory = join(dshHome, 'token-usage-board')
   const cachePath = join(cacheDirectory, 'index-v1.json')
   await mkdir(cacheDirectory, { recursive: true })
   await writeFile(cachePath, JSON.stringify({
@@ -71,16 +71,16 @@ try {
   await runNode(dshBin, ['plugin', '--profile', 'web', 'add', tarball])
   const profilePath = join(dshHome, 'profiles', 'web', 'package.json')
   const installed = JSON.parse(await readFile(profilePath, 'utf8'))
-  if (installed.dependencies?.['dsh-activity-dashboard'] === undefined) throw new Error('Plugin dependency was not installed')
-  if (!installed.dsh?.profile?.bundles?.includes('dsh-activity-dashboard')) throw new Error('Bundle was not activated')
-  const installedManifest = JSON.parse(await readFile(join(dirname(profilePath), 'node_modules', 'dsh-activity-dashboard', 'package.json'), 'utf8'))
+  if (installed.dependencies?.['dsh-token-usage-board'] === undefined) throw new Error('Plugin dependency was not installed')
+  if (!installed.dsh?.profile?.bundles?.includes('dsh-token-usage-board')) throw new Error('Bundle was not activated')
+  const installedManifest = JSON.parse(await readFile(join(dirname(profilePath), 'node_modules', 'dsh-token-usage-board', 'package.json'), 'utf8'))
   const bundledOfficialPackages = Object.keys(installedManifest.dependencies ?? {}).filter(name => name.startsWith('@deepseek-ai/'))
   if (bundledOfficialPackages.length > 0) throw new Error(`Installed plugin has regular official dependencies: ${bundledOfficialPackages.join(', ')}`)
   const sourceManifest = JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8'))
   if (installedManifest.version !== sourceManifest.version) throw new Error(`Unexpected installed plugin version: ${installedManifest.version} (expected ${sourceManifest.version})`)
 
   const dump = await runNode(dshBin, ['--profile', 'web', '--dump-config'])
-  if (!dump.stdout.includes('dsh-activity-dashboard')) throw new Error('Composed config does not contain the plugin')
+  if (!dump.stdout.includes('dsh-token-usage-board')) throw new Error('Composed config does not contain the plugin')
 
   server = spawn(process.execPath, [dshBin, '--profile', 'web', '--port', '0'], {
     cwd: temporary,
@@ -109,7 +109,7 @@ try {
   })
 
   const query = 'from=2026-08-14&to=2026-08-14&scope=all&timeZone=UTC'
-  const snapshotResponse = await fetch(`${url}/activity-dashboard/v1/snapshot?${query}`)
+  const snapshotResponse = await fetch(`${url}/token-usage-board/v1/snapshot?${query}`)
   if (!snapshotResponse.ok) throw new Error(`Snapshot returned ${snapshotResponse.status}`)
   const snapshot = await snapshotResponse.json()
   if (!snapshot.allTime?.totals || !Array.isArray(snapshot.days) || snapshot.days.length !== 1) {
@@ -127,26 +127,26 @@ try {
   if (rebuiltCache?.schema !== 5 || !Array.isArray(rebuiltCache.sessions) || rebuiltCache.sessions.length !== 0) {
     throw new Error('Cache was not rebuilt with schema 5')
   }
-  const callsResponse = await fetch(`${url}/activity-dashboard/v1/calls?${query}&page=1&pageSize=50`)
+  const callsResponse = await fetch(`${url}/token-usage-board/v1/calls?${query}&page=1&pageSize=50`)
   const calls = await callsResponse.json()
   if (!callsResponse.ok || calls.indexReady !== true || !Array.isArray(calls.items) || calls.total !== 0) {
     throw new Error('Calls endpoint contract failed')
   }
-  const invalidLimitResponse = await fetch(`${url}/activity-dashboard/v1/calls?${query}&maxRecords=10001`)
+  const invalidLimitResponse = await fetch(`${url}/token-usage-board/v1/calls?${query}&maxRecords=10001`)
   if (invalidLimitResponse.status !== 400) throw new Error('Calls retention-limit validation failed')
-  const headResponse = await fetch(`${url}/activity-dashboard/v1/snapshot?${query}`, { method: 'HEAD' })
+  const headResponse = await fetch(`${url}/token-usage-board/v1/snapshot?${query}`, { method: 'HEAD' })
   if (!headResponse.ok || (await headResponse.text()) !== '') throw new Error('HEAD contract failed')
-  const postResponse = await fetch(`${url}/activity-dashboard/v1/snapshot?${query}`, { method: 'POST' })
+  const postResponse = await fetch(`${url}/token-usage-board/v1/snapshot?${query}`, { method: 'POST' })
   if (postResponse.status !== 405) throw new Error('Write-method fence failed')
-  const csvResponse = await fetch(`${url}/activity-dashboard/v1/export.csv?${query}`)
+  const csvResponse = await fetch(`${url}/token-usage-board/v1/export.csv?${query}`)
   const csv = (await csvResponse.text()).replace(/^\uFEFF/, '')
   if (!csvResponse.ok || !csv.startsWith('"date"')) throw new Error('CSV export failed')
 
   await stopServer()
-  await runNode(dshBin, ['plugin', '--profile', 'web', 'remove', 'dsh-activity-dashboard'])
+  await runNode(dshBin, ['plugin', '--profile', 'web', 'remove', 'dsh-token-usage-board'])
   const removed = JSON.parse(await readFile(profilePath, 'utf8'))
-  if (removed.dependencies?.['dsh-activity-dashboard'] !== undefined) throw new Error('Plugin dependency survived removal')
-  if (removed.dsh?.profile?.bundles?.includes('dsh-activity-dashboard')) throw new Error('Bundle survived removal')
+  if (removed.dependencies?.['dsh-token-usage-board'] !== undefined) throw new Error('Plugin dependency survived removal')
+  if (removed.dsh?.profile?.bundles?.includes('dsh-token-usage-board')) throw new Error('Bundle survived removal')
 
   console.log('Clean-profile lifecycle verified: pack, install, stale-cache invalidation, compose, boot, API, calls, export, method fence, schema-5 rebuild, remove.')
 } finally {

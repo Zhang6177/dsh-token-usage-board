@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown'
 
-const id = 'dsh-activity-dashboard'
+const id = 'dsh-token-usage-board'
 const clientExternals = [
   'react',
   'react/jsx-runtime',

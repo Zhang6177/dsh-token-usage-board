@@ -1,19 +1,19 @@
 # 数据接口（API）参考
 
-dsh-activity-dashboard 在 Harness Web 同源地址上暴露一组**只读** HTTP 接口，供插件界面、其他插件或外部工具（curl、脚本、仪表盘）消费。
+dsh-token-usage-board 在 Harness Web 同源地址上暴露一组**只读** HTTP 接口，供插件界面、其他插件或外部工具（curl、脚本、仪表盘）消费。
 
 ## 约定
 
-- 基路径：配置项 `apiPath`，默认 `/activity-dashboard/v1`（尾部 `/` 会被去掉）。
+- 基路径：配置项 `apiPath`，默认 `/token-usage-board/v1`（尾部 `/` 会被去掉）。
 - 仅支持 `GET` 与 `HEAD`；其他方法返回 `405`（带 `allow: GET, HEAD`）。
 - 响应头：`cache-control: no-store`、`x-content-type-options: nosniff`；JSON 响应为 `application/json; charset=utf-8`。
 - 时间戳均为 Unix 毫秒；日期均为 `YYYY-MM-DD`（按 `timeZone` 归日）。
-- 数据全部来自本机统计索引（`DSH_HOME/activity-dashboard`），接口不发起任何外部网络请求。
+- 数据全部来自本机统计索引（`DSH_HOME/token-usage-board`），接口不发起任何外部网络请求。
 
 ### 稳定性承诺
 
 - `v1` 路径向后兼容：可以**新增**字段，不删除、不改义既有字段。
-- 破坏性变更会启用新版本路径（`/activity-dashboard/v2`），并同步更新默认 `apiPath`。
+- 破坏性变更会启用新版本路径（`/token-usage-board/v2`），并同步更新默认 `apiPath`。
 - 字段以本文件与 `src/types.ts` 的 TypeScript 定义为准，二者保持一致。
 
 ## 通用查询参数
@@ -113,8 +113,8 @@ dsh-activity-dashboard 在 Harness Web 同源地址上暴露一组**只读** HTT
 
 | 端点 | 内容 | 响应 |
 | --- | --- | --- |
-| `GET /export.csv` | 当前查询区间快照的 CSV（带 BOM，可直接用 Excel 打开） | `text/csv; charset=utf-8`，`content-disposition: attachment; filename="dsh-activity-dashboard.csv"` |
-| `GET /export.json` | 当前查询区间快照的完整 JSON（同 `/snapshot` 响应） | `application/json; charset=utf-8`，`content-disposition: attachment; filename="dsh-activity-dashboard.json"` |
+| `GET /export.csv` | 当前查询区间快照的 CSV（带 BOM，可直接用 Excel 打开） | `text/csv; charset=utf-8`，`content-disposition: attachment; filename="dsh-token-usage-board.csv"` |
+| `GET /export.json` | 当前查询区间快照的完整 JSON（同 `/snapshot` 响应） | `application/json; charset=utf-8`，`content-disposition: attachment; filename="dsh-token-usage-board.json"` |
 
 ## 错误约定
 
@@ -129,16 +129,16 @@ dsh-activity-dashboard 在 Harness Web 同源地址上暴露一组**只读** HTT
 
 ```sh
 # 近 30 天快照（按北京时间归日）
-curl -s 'http://127.0.0.1:3080/activity-dashboard/v1/snapshot?timeZone=Asia/Shanghai'
+curl -s 'http://127.0.0.1:3080/token-usage-board/v1/snapshot?timeZone=Asia/Shanghai'
 
 # 全量历史、只看主会话
-curl -s 'http://127.0.0.1:3080/activity-dashboard/v1/snapshot?from=2020-01-01&to=2026-12-31&scope=main'
+curl -s 'http://127.0.0.1:3080/token-usage-board/v1/snapshot?from=2020-01-01&to=2026-12-31&scope=main'
 
 # 调用明细：第 1 页，只看输入 ≥ 100000 Token 的调用
-curl -s 'http://127.0.0.1:3080/activity-dashboard/v1/calls?page=1&pageSize=20&minInputTokens=100000'
+curl -s 'http://127.0.0.1:3080/token-usage-board/v1/calls?page=1&pageSize=20&minInputTokens=100000'
 
 # 导出近 90 天 CSV
-curl -sOJ 'http://127.0.0.1:3080/activity-dashboard/v1/export.csv?from=2026-06-05&to=2026-09-03'
+curl -sOJ 'http://127.0.0.1:3080/token-usage-board/v1/export.csv?from=2026-06-05&to=2026-09-03'
 ```
 
 ## 隐私
