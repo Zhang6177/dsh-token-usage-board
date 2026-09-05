@@ -30,8 +30,7 @@ const zh = {
   modeWeekly: '每周',
   modeMonthly: '每月',
   modeCumulative: '累计',
-  less: '较少',
-  more: '较多',
+  
   mon: '一',
   wed: '三',
   fri: '五',
@@ -92,8 +91,7 @@ const en: Dictionary = {
   modeWeekly: 'Weekly',
   modeMonthly: 'Monthly',
   modeCumulative: 'Cumulative',
-  less: 'Less',
-  more: 'More',
+  
   mon: 'M',
   wed: 'W',
   fri: 'F',

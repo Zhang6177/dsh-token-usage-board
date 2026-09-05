@@ -323,7 +323,6 @@ function TokenActivity({ days }: { days: DayStats[] }): ReactNode {
   const modeLabels: Record<ActivityMode, I18nKey> = { daily: 'modeDaily', weekly: 'modeWeekly', monthly: 'modeMonthly', cumulative: 'modeCumulative' }
   return <section className="us-panel"><div className="us-panel-head"><span className="us-panel-title">{t('activityTitle')}</span>
     <span className="us-activity-controls">
-      {mode === 'daily' && <span className="us-heat-legend"><span>{t('less')}</span><i className="us-cell" data-level={0} /><i className="us-cell" data-level={1} /><i className="us-cell" data-level={2} /><i className="us-cell" data-level={3} /><i className="us-cell" data-level={4} /><i className="us-cell" data-level={5} /><span>{t('more')}</span></span>}
       <span className="us-segment" aria-label={t('activityTitle')}>{ACTIVITY_MODES.map(item => <button type="button" key={item} aria-pressed={mode === item} onClick={() => setMode(item)}>{t(modeLabels[item])}</button>)}</span>
     </span>
   </div>

@@ -106,8 +106,7 @@ body[data-ds-dark-theme] .us-cell[data-level="4"] { background: #2b91e9; }
 body[data-ds-dark-theme] .us-cell[data-level="5"] { background: #67b7ff; }
 .us-heat-months { display: grid; grid-template-columns: repeat(53, minmax(0, 1fr)); gap: clamp(2px, .28vw, 4px); width: 100%; margin-top: 6px; }
 .us-heat-months span { overflow: visible; color: var(--us-muted); font-size: 11px; white-space: nowrap; }
-.us-heat-legend { display: inline-flex; align-items: center; gap: 5px; }
-.us-heat-legend .us-cell { width: 15px; height: 15px; }
+
 .us-cell-tip { position: relative; cursor: default; outline: none; transition: transform 90ms ease, box-shadow 90ms ease; }
 .us-cell-tip:hover, .us-cell-tip:focus-visible { box-shadow: 0 0 0 2px var(--us-bg), 0 0 0 3px var(--us-text); z-index: 3; transform: scale(1.12); }
 .us-floating-tip { position: fixed; z-index: 200; transform: translate(-50%, -100%); width: max-content; max-width: min(360px, calc(100vw - 24px)); padding: 9px 11px; border: 1px solid var(--us-border); border-radius: 10px; color: var(--us-text); background: color-mix(in srgb, var(--us-raised) 94%, transparent); box-shadow: 0 12px 38px rgba(0,0,0,.16); backdrop-filter: blur(14px); font-size: 12px; line-height: 1.4; pointer-events: none; animation: us-tip-in 110ms ease-out; }
